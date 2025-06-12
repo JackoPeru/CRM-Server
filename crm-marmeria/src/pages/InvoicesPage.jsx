@@ -21,7 +21,7 @@ const InvoicesPage = ({
   const [invoiceToDeleteId, setInvoiceToDeleteId] = useState(null);
 
   const [newInvoice, setNewInvoice] = useState({
-    invoiceNumber: '',
+    // invoiceNumber: '', // Removed: Will be auto-generated
     date: new Date().toISOString().split('T')[0],
     dueDate: '',
     customerId: '',
@@ -37,14 +37,26 @@ const InvoicesPage = ({
     setInvoices(initialInvoices || []);
   }, [initialInvoices]);
 
+  const generateInvoiceNumber = (date) => {
+    const year = new Date(date).getFullYear();
+    const invoicesThisYear = invoices.filter(inv => inv.invoiceNumber && new Date(inv.date).getFullYear() === year);
+    const highestNumThisYear = invoicesThisYear.reduce((max, inv) => {
+        const numPart = parseInt(inv.invoiceNumber.split('-').pop());
+        return numPart > max ? numPart : max;
+    }, 0);
+    const nextNum = highestNumThisYear + 1;
+    return `FATT-${year}-${String(nextNum).padStart(3, '0')}`;
+  };
+
   useEffect(() => {
     let invoicesToDisplay = invoices || [];
     if (searchTerm) {
       invoicesToDisplay = invoicesToDisplay.filter(
         (invoice) =>
-          invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          // (invoice.invoiceNumber && invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())) || // Temporarily removed for safety
           (customers.find(c => c.id === invoice.customerId)?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          invoice.status.toLowerCase().includes(searchTerm.toLowerCase())
+          invoice.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (invoice.invoiceNumber && typeof invoice.invoiceNumber === 'string' && invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     setFilteredInvoices(invoicesToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date)));
@@ -83,9 +95,11 @@ const InvoicesPage = ({
   const handleAddInvoice = (e) => {
     e.preventDefault();
     const newId = invoices.length > 0 ? Math.max(...invoices.map(inv => inv.id)) + 1 : 1;
+    const generatedInvoiceNumber = generateInvoiceNumber(newInvoice.date);
     const invoiceToAdd = {
       ...newInvoice,
       id: newId,
+      invoiceNumber: generatedInvoiceNumber, // Added auto-generated number
       total: calculateInvoiceTotal(newInvoice.items),
       customerId: parseInt(newInvoice.customerId),
       projectId: newInvoice.projectId ? parseInt(newInvoice.projectId) : null,
@@ -94,7 +108,7 @@ const InvoicesPage = ({
     setAppInvoices((prevInvoices) => [...(prevInvoices || []), invoiceToAdd]);
     setIsModalOpen(false);
     setNewInvoice({
-      invoiceNumber: '',
+      // invoiceNumber: '', // Removed
       date: new Date().toISOString().split('T')[0],
       dueDate: '',
       customerId: '',
@@ -196,7 +210,7 @@ const InvoicesPage = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
             <input
               type="text"
-              placeholder="Cerca per numero, cliente, stato..."
+              placeholder="Cerca per cliente, stato..."
               className="w-full pl-10 pr-4 py-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -208,7 +222,7 @@ const InvoicesPage = ({
           <table className="w-full">
             <thead className="bg-light-bg dark:bg-dark-bg">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Numero</th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fattura N.</th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scadenza</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
@@ -217,15 +231,17 @@ const InvoicesPage = ({
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Azioni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-light-border dark:divide-dark-border">
+            <tbody className="bg-white dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
               {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{invoice.invoiceNumber}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{new Date(invoice.date).toLocaleDateString('it-IT')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('it-IT') : 'N/D'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customers.find(c => c.id === invoice.customerId)?.name || 'N/D'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">€ {invoice.total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={invoice.id} className="hover:bg-light-hover dark:hover:bg-dark-hover">
+                  {/* <td className="px-6 py-4 whitespace-nowrap font-medium">{invoice.invoiceNumber}</td> */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{new Date(invoice.date).toLocaleDateString('it-IT')}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('it-IT') : 'N/D'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">
+                    {customers.find(c => c.id === invoice.customerId)?.name || 'N/D'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">€{invoice.total?.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {getStatusPill(invoice.status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -244,7 +260,7 @@ const InvoicesPage = ({
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Nessuna fattura trovata. {searchTerm && 'Modifica i filtri o il termine di ricerca.'}
                   </td>
                 </tr>
@@ -258,7 +274,7 @@ const InvoicesPage = ({
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuova Fattura</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
@@ -267,8 +283,8 @@ const InvoicesPage = ({
             <form onSubmit={handleAddInvoice}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label htmlFor="invoiceNumber" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Numero Fattura *</label>
-                  <input type="text" name="invoiceNumber" id="invoiceNumber" value={newInvoice.invoiceNumber} onChange={handleInputChange} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input dark:text-dark-text dark:placeholder-gray-400" />
+                  <label className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Numero Fattura</label>
+                  <p className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg/50 dark:bg-dark-input/50 text-light-text-medium dark:text-dark-text-medium italic">Generato automaticamente</p>
                 </div>
                 <div>
                   <label htmlFor="date" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Data Fattura *</label>
@@ -382,16 +398,16 @@ const InvoicesPage = ({
             <form onSubmit={handleUpdateInvoice}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                  <div>
-                  <label htmlFor="edit-invoiceNumber" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Numero Fattura *</label>
-                  <input type="text" name="invoiceNumber" id="edit-invoiceNumber" value={currentInvoice.invoiceNumber} onChange={(e) => setCurrentInvoice({...currentInvoice, invoiceNumber: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
+                  <label className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Numero Fattura</label>
+                  <p className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg/50 dark:bg-dark-input/50 text-light-text-medium dark:text-dark-text-medium">{currentInvoice?.invoiceNumber}</p>
                 </div>
                 <div>
                   <label htmlFor="edit-date" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Data Fattura *</label>
-                  <input type="date" name="date" id="edit-date" value={currentInvoice.date} onChange={(e) => setCurrentInvoice({...currentInvoice, date: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
+                  <input type="date" name="date" id="edit-date" value={currentInvoice?.date} onChange={(e) => setCurrentInvoice({...currentInvoice, date: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
                 </div>
                 <div>
                   <label htmlFor="edit-dueDate" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Data Scadenza *</label>
-                  <input type="date" name="dueDate" id="edit-dueDate" value={currentInvoice.dueDate} onChange={(e) => setCurrentInvoice({...currentInvoice, dueDate: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
+                  <input type="date" name="dueDate" id="edit-dueDate" value={currentInvoice?.dueDate} onChange={(e) => setCurrentInvoice({...currentInvoice, dueDate: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
                 </div>
                 <div>
                   <label htmlFor="edit-customerId" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Cliente *</label>

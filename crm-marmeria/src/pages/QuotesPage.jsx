@@ -21,7 +21,7 @@ const QuotesPage = ({
   const [quoteToDeleteId, setQuoteToDeleteId] = useState(null);
 
   const [newQuote, setNewQuote] = useState({
-    quoteNumber: '',
+    // quoteNumber: '', // Removed: Will be auto-generated
     date: new Date().toISOString().split('T')[0],
     customerId: '',
     projectId: '', // Opzionale
@@ -35,16 +35,33 @@ const QuotesPage = ({
     setQuotes(initialQuotes || []);
   }, [initialQuotes]);
 
+  const generateQuoteNumber = (date) => {
+    const year = new Date(date).getFullYear();
+    const quotesThisYear = quotes.filter(q => q.quoteNumber && new Date(q.date).getFullYear() === year);
+    const highestNumThisYear = quotesThisYear.reduce((max, q) => {
+        const numPart = parseInt(q.quoteNumber.split('-').pop());
+        return numPart > max ? numPart : max;
+    }, 0);
+    const nextNum = highestNumThisYear + 1;
+    return `PREV-${year}-${String(nextNum).padStart(3, '0')}`;
+  };
+
   useEffect(() => {
     let quotesToDisplay = quotes || [];
     if (searchTerm) {
-      quotesToDisplay = quotesToDisplay.filter(
-        (quote) =>
-          quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (customers.find(c => c.id === quote.customerId)?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (projects.find(p => p.id === quote.projectId)?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          quote.status.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      quotesToDisplay = quotesToDisplay.filter((quote) => {
+        const customer = customers.find(c => c.id === quote.customerId);
+        const project = projects.find(p => p.id === quote.projectId);
+
+        const searchTermLower = searchTerm.toLowerCase();
+
+        const matchesCustomer = customer && customer.name && customer.name.toLowerCase().includes(searchTermLower);
+        const matchesProject = project && project.name && project.name.toLowerCase().includes(searchTermLower);
+        const matchesStatus = quote.status && quote.status.toLowerCase().includes(searchTermLower);
+        const matchesQuoteNumber = quote.quoteNumber && typeof quote.quoteNumber === 'string' && quote.quoteNumber.toLowerCase().includes(searchTermLower);
+
+        return matchesCustomer || matchesProject || matchesStatus || matchesQuoteNumber;
+      });
     }
     setFilteredQuotes(quotesToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date)));
   }, [searchTerm, quotes, customers, projects]);
@@ -87,9 +104,11 @@ const QuotesPage = ({
   const handleAddQuote = (e) => {
     e.preventDefault();
     const newId = quotes.length > 0 ? Math.max(...quotes.map(q => q.id)) + 1 : 1;
+    const generatedQuoteNumber = generateQuoteNumber(newQuote.date);
     const quoteToAdd = {
       ...newQuote,
       id: newId,
+      quoteNumber: generatedQuoteNumber, // Added auto-generated number
       total: calculateTotal(newQuote.items),
       customerId: parseInt(newQuote.customerId),
       projectId: newQuote.projectId ? parseInt(newQuote.projectId) : null,
@@ -97,7 +116,7 @@ const QuotesPage = ({
     setAppQuotes((prevQuotes) => [...(prevQuotes || []), quoteToAdd]);
     setIsModalOpen(false);
     setNewQuote({
-      quoteNumber: '',
+      // quoteNumber: '', // Removed
       date: new Date().toISOString().split('T')[0],
       customerId: '',
       projectId: '',
@@ -185,6 +204,15 @@ const QuotesPage = ({
     }
   };
 
+  const getStatusPill = (status) => {
+    const colorClasses = getStatusColor(status);
+    return (
+      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${colorClasses}`}>
+        {status}
+      </span>
+    );
+  };
+
   return (
     <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
       <div className="flex justify-between items-center mb-6">
@@ -204,7 +232,7 @@ const QuotesPage = ({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
             <input
               type="text"
-              placeholder="Cerca per numero, cliente, progetto, stato..."
+              placeholder="Cerca per cliente, progetto, stato..."
               className="w-full pl-10 pr-4 py-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -216,7 +244,7 @@ const QuotesPage = ({
           <table className="w-full">
             <thead className="bg-light-bg dark:bg-dark-bg">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Numero</th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Preventivo N.</th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progetto</th>
@@ -225,20 +253,22 @@ const QuotesPage = ({
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Azioni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-light-border dark:divide-dark-border">
+            <tbody className="bg-white dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
               {filteredQuotes.length > 0 ? filteredQuotes.map((quote) => (
-                <tr key={quote.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{quote.quoteNumber}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{new Date(quote.date).toLocaleDateString('it-IT')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customers.find(c => c.id === quote.customerId)?.name || 'N/D'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{projects.find(p => p.id === quote.projectId)?.name || 'N/D'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">€ {quote.total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(quote.status)}`}>
-                      {quote.status}
-                    </span>
+                <tr key={quote.id} className="hover:bg-light-hover dark:hover:bg-dark-hover">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-light-text-strong dark:text-dark-text-strong">{quote.quoteNumber}</td> */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{new Date(quote.date).toLocaleDateString('it-IT')}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">
+                    {customers.find(c => c.id === quote.customerId)?.name || 'N/D'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">
+                    {projects.find(p => p.id === quote.projectId)?.name || 'Nessun Progetto'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">€{quote.total?.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {getStatusPill(quote.status)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => handleViewQuote(quote)} className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded" title="Visualizza">
                         <Eye className="w-5 h-5" />
@@ -254,7 +284,7 @@ const QuotesPage = ({
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Nessun preventivo trovato. {searchTerm && 'Modifica i filtri o il termine di ricerca.'}
                   </td>
                 </tr>
@@ -268,7 +298,7 @@ const QuotesPage = ({
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuovo Preventivo</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
@@ -277,8 +307,8 @@ const QuotesPage = ({
             <form onSubmit={handleAddQuote}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label htmlFor="quoteNumber" className="block text-sm font-medium mb-1">Numero Preventivo *</label>
-                  <input type="text" name="quoteNumber" id="quoteNumber" value={newQuote.quoteNumber} onChange={handleInputChange} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
+                  <label className="block text-sm font-medium mb-1">Numero Preventivo</label>
+                  <p className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg/50 dark:bg-dark-input/50 text-light-text-medium dark:text-dark-text-medium italic">Generato automaticamente</p>
                 </div>
                 <div>
                   <label htmlFor="date" className="block text-sm font-medium mb-1">Data *</label>
@@ -385,12 +415,12 @@ const QuotesPage = ({
             <form onSubmit={handleUpdateQuote}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label htmlFor="edit-quoteNumber" className="block text-sm font-medium mb-1">Numero Preventivo *</label>
-                  <input type="text" name="quoteNumber" id="edit-quoteNumber" value={currentQuote.quoteNumber} onChange={(e) => setCurrentQuote({...currentQuote, quoteNumber: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
+                  <label className="block text-sm font-medium mb-1">Numero Preventivo</label>
+                  <p className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg/50 dark:bg-dark-input/50 text-light-text-medium dark:text-dark-text-medium">{currentQuote?.quoteNumber}</p>
                 </div>
                 <div>
                   <label htmlFor="edit-date" className="block text-sm font-medium mb-1">Data *</label>
-                  <input type="date" name="date" id="edit-date" value={currentQuote.date} onChange={(e) => setCurrentQuote({...currentQuote, date: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input" />
+                  <input type="date" name="date" id="edit-date" value={currentQuote?.date} onChange={(e) => setCurrentQuote({...currentQuote, date: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div>
                   <label htmlFor="edit-customerId" className="block text-sm font-medium mb-1">Cliente *</label>

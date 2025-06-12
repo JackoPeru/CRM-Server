@@ -19,7 +19,7 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
     unit: '', // e.g., m², kg, pz
     price: '', // Prezzo unitario
     supplier: '',
-    code: '', // Codice materiale opzionale
+    supplier: '',
   });
 
   useEffect(() => {
@@ -32,7 +32,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
       materialsToDisplay = materialsToDisplay.filter(
         (material) =>
           material.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (material.code && material.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (material.supplier && material.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -60,7 +59,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
       unit: '',
       price: '',
       supplier: '',
-      code: '',
     });
   };
 
@@ -120,7 +118,7 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
             <input
               type="text"
-              placeholder="Cerca materiale per nome, codice, fornitore..."
+              placeholder="Cerca materiale per nome, fornitore..."
               className="w-full pl-10 pr-4 py-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -132,7 +130,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
           <table className="w-full">
             <thead className="bg-light-bg dark:bg-dark-bg">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Codice</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unità</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prezzo Unitario</th>
@@ -143,7 +140,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
             <tbody className="divide-y divide-light-border dark:divide-dark-border">
               {filteredMaterials.length > 0 ? filteredMaterials.map((material) => (
                 <tr key={material.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap">{material.code || 'N/D'}</td>
                   <td className="px-6 py-4 whitespace-nowrap font-medium">{material.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{material.unit}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{material.price}</td>
@@ -164,7 +160,7 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Nessun materiale trovato. {searchTerm && 'Modifica i filtri o il termine di ricerca.'}
                   </td>
                 </tr>
@@ -186,13 +182,9 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
             </div>
             <form onSubmit={handleAddMaterial}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
+                <div className="md:col-span-2">
                   <label htmlFor="material-name" className="block text-sm font-medium mb-1">Nome Materiale *</label>
                   <input type="text" name="name" id="material-name" value={newMaterial.name} onChange={handleInputChange} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
-                </div>
-                <div>
-                  <label htmlFor="material-code" className="block text-sm font-medium mb-1">Codice</label>
-                  <input type="text" name="code" id="material-code" value={newMaterial.code} onChange={handleInputChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div className="md:col-span-2">
                   <label htmlFor="material-description" className="block text-sm font-medium mb-1">Descrizione</label>
@@ -232,13 +224,9 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
             </div>
             <form onSubmit={handleUpdateMaterial}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
+                <div className="md:col-span-2">
                   <label htmlFor="edit-material-name" className="block text-sm font-medium mb-1">Nome Materiale *</label>
                   <input type="text" name="name" id="edit-material-name" value={currentMaterial.name} onChange={(e) => setCurrentMaterial({...currentMaterial, name: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
-                </div>
-                 <div>
-                  <label htmlFor="edit-material-code" className="block text-sm font-medium mb-1">Codice</label>
-                  <input type="text" name="code" id="edit-material-code" value={currentMaterial.code || ''} onChange={(e) => setCurrentMaterial({...currentMaterial, code: e.target.value})} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div className="md:col-span-2">
                   <label htmlFor="edit-material-description" className="block text-sm font-medium mb-1">Descrizione</label>
@@ -277,7 +265,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
               </button>
             </div>
             <div className="space-y-2 text-light-text dark:text-dark-text">
-              <p><strong>Codice:</strong> {materialToView.code || 'N/D'}</p>
               <p><strong>Nome:</strong> {materialToView.name}</p>
               <p><strong>Descrizione:</strong> {materialToView.description || 'N/D'}</p>
               <p><strong>Unità di Misura:</strong> {materialToView.unit}</p>
