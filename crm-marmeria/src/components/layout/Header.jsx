@@ -41,11 +41,14 @@ const Header = ({
           {typeof toggleDarkMode === 'function' && (
             <button
               onClick={toggleDarkMode}
-              className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              aria-label={darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}
               type="button"
+              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${darkMode ? 'bg-indigo-600 focus:ring-indigo-500' : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400'}`}
+              aria-label={darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}
             >
-              <Icon name={darkMode ? Sun : Moon} size={22} />
+              <span className="sr-only">{darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}</span>
+              <span
+                className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
+              />
             </button>
           )}
           <button 
