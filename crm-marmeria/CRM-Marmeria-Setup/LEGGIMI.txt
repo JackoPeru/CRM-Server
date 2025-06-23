@@ -1,0 +1,23 @@
+# CRM Marmeria - Pacchetto Installazione 
+ 
+## Contenuto Pacchetto: 
+ 
+- INSTALLA-QUI.bat     (Avvio installazione rapida) 
+- setup.bat            (Script installazione Windows) 
+- setup.ps1            (Script installazione PowerShell) 
+- INSTALLAZIONE.md     (Guida completa installazione) 
+ 
+## Installazione Rapida: 
+ 
+1. Doppio click su INSTALLA-QUI.bat 
+2. Segui le istruzioni a schermo 
+3. Attendi il completamento 
+ 
+## Versione Online: 
+ 
+Accesso diretto senza installazione: 
+https://jackoperu.github.io/Crm-Marmeria/ 
+ 
+## Supporto: 
+ 
+Repository: https://github.com/JackoPeru/Crm-Marmeria 
