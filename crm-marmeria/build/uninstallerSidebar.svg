@@ -1,0 +1,63 @@
+<svg width="164" height="314" viewBox="0 0 164 314" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradientUninstall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f87171;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGradientUninstall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="164" height="314" fill="url(#bgGradientUninstall)"/>
+  
+  <!-- Decorative pattern -->
+  <g opacity="0.1">
+    <circle cx="20" cy="50" r="30" fill="white"/>
+    <circle cx="140" cy="120" r="25" fill="white"/>
+    <circle cx="30" cy="200" r="20" fill="white"/>
+    <circle cx="130" cy="270" r="35" fill="white"/>
+  </g>
+  
+  <!-- Main icon/logo area -->
+  <g transform="translate(32, 80)">
+    <!-- Building/marble icon with X overlay -->
+    <rect x="20" y="40" width="60" height="80" rx="4" fill="url(#iconGradientUninstall)" stroke="white" stroke-width="2" opacity="0.7"/>
+    <rect x="30" y="50" width="40" height="15" fill="#dc2626" opacity="0.3"/>
+    <rect x="30" y="70" width="40" height="15" fill="#dc2626" opacity="0.3"/>
+    <rect x="30" y="90" width="40" height="15" fill="#dc2626" opacity="0.3"/>
+    
+    <!-- X mark overlay -->
+    <g stroke="white" stroke-width="3" stroke-linecap="round">
+      <line x1="35" y1="55" x2="65" y2="85"/>
+      <line x1="65" y1="55" x2="35" y2="85"/>
+    </g>
+    
+    <!-- Decorative elements -->
+    <rect x="10" y="30" width="80" height="4" rx="2" fill="white" opacity="0.8"/>
+    <rect x="15" y="125" width="70" height="3" rx="1.5" fill="white" opacity="0.6"/>
+  </g>
+  
+  <!-- Title area -->
+  <g transform="translate(82, 180)">
+    <text x="0" y="0" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">
+      Rimozione
+    </text>
+    <text x="0" y="20" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14">
+      CRM Marmeria
+    </text>
+  </g>
+  
+  <!-- Version info -->
+  <g transform="translate(82, 250)">
+    <text x="0" y="0" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" opacity="0.8">
+      v1.0.0
+    </text>
+  </g>
+  
+  <!-- Bottom decorative line -->
+  <rect x="20" y="300" width="124" height="2" rx="1" fill="white" opacity="0.5"/>
+</svg>
