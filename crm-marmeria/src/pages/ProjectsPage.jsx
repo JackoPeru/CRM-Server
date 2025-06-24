@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Edit, Trash, Search, Plus, Filter, X } from 'lucide-react';
 
-const ProjectsPage = ({ projects, setProjects, customers, onNavigate }) => {
+const ProjectsPage = ({ projects, setProjects, customers, onNavigate, addProject, updateProject, deleteProject }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentFilteredProjects, setCurrentFilteredProjects] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,15 +31,13 @@ const ProjectsPage = ({ projects, setProjects, customers, onNavigate }) => {
 
   const handleAddProject = (e) => {
     e.preventDefault();
-    const newId = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
     const selectedCustomer = customers.find(c => c.id === parseInt(newProject.clientId));
     const projectToAdd = {
       ...newProject,
-      id: newId,
       client: selectedCustomer ? selectedCustomer.name : 'Cliente non specificato',
       budget: `€ ${parseFloat(newProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     };
-    setProjects((prevProjects) => [...prevProjects, projectToAdd]);
+    addProject(projectToAdd);
     setIsModalOpen(false);
     setNewProject({
       name: '',
@@ -60,11 +58,8 @@ const ProjectsPage = ({ projects, setProjects, customers, onNavigate }) => {
 
   const handleUpdateProject = (e) => {
     e.preventDefault();
-    setProjects((prevProjects) =>
-      prevProjects.map((proj) =>
-        proj.id === currentProject.id ? { ...currentProject, budget: `€ ${parseFloat(currentProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` } : proj
-      )
-    );
+    const updatedProject = { ...currentProject, budget: `€ ${parseFloat(currentProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` };
+    updateProject(currentProject.id, updatedProject);
     setIsEditModalOpen(false);
     setCurrentProject(null);
   };
@@ -76,9 +71,7 @@ const ProjectsPage = ({ projects, setProjects, customers, onNavigate }) => {
 
   const handleDeleteProject = () => {
     if (projectToDeleteId) {
-      setProjects((prevProjects) =>
-        prevProjects.filter((project) => project.id !== projectToDeleteId)
-      );
+      deleteProject(projectToDeleteId);
       setIsConfirmDeleteModalOpen(false);
       setProjectToDeleteId(null);
     }

@@ -19,6 +19,7 @@ import MaterialsPage  from './pages/MaterialsPage';
 import QuotesPage     from './pages/QuotesPage'; // Aggiunto import
 import InvoicesPage   from './pages/InvoicesPage'; // Aggiunto import
 import SettingsPage   from './pages/SettingsPage';
+import useNetworkStorage from './hooks/useNetworkStorage';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, component: DashboardPage },
@@ -92,160 +93,65 @@ const App = () => {
       syncInterval: 30000, // 30 secondi
     };
   });
-  const [materials, setMaterials] = useState([
-    {
-      id: 1,
-      code: 'MAT-001',
-      name: 'Marmo Carrara Classico',
-      description: 'Lastre di marmo di Carrara, prima scelta.',
-      unit: 'm²',
-      price: '€ 180,00',
-      supplier: 'Rossi Marmi Srl',
-    },
-    {
-      id: 2,
-      code: 'MAT-002',
-      name: 'Granito Nero Assoluto',
-      description: 'Granito nero lucido per top cucina e pavimenti.',
-      unit: 'm²',
-      price: '€ 220,00',
-      supplier: 'Grandi Pietre Spa',
-    },
-    {
-      id: 3,
-      code: 'MAT-003',
-      name: 'Colla per Piastrelle H40',
-      description: 'Colla cementizia ad alte prestazioni.',
-      unit: 'sacco 25kg',
-      price: '€ 15,50',
-      supplier: 'EdilFor Snc',
-    },
-  ]);
+  // Utilizzo useNetworkStorage per la gestione dei dati
+  const {
+    data: materials,
+    addItem: addMaterial,
+    updateItem: updateMaterial,
+    deleteItem: deleteMaterial,
+  } = useNetworkStorage('materials');
+  
+  const {
+    data: customers,
+    addItem: addCustomer,
+    updateItem: updateCustomer,
+    deleteItem: deleteCustomer,
+  } = useNetworkStorage('customers');
+  
+  const {
+    data: projects,
+    addItem: addProject,
+    updateItem: updateProject,
+    deleteItem: deleteProject,
+  } = useNetworkStorage('projects');
+  
+  const {
+    data: invoices,
+    addItem: addInvoice,
+    updateItem: updateInvoice,
+    deleteItem: deleteInvoice,
+  } = useNetworkStorage('invoices');
+  
+  // Setter functions per compatibilità con i componenti esistenti
+  const setMaterials = (newMaterials) => {
+    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
+  };
+  const setCustomers = (newCustomers) => {
+    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
+  };
+  const setProjects = (newProjects) => {
+    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
+  };
+  const setInvoices = (newInvoices) => {
+    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
+  };
   // Aggiungo uno stato per i filtri da applicare alla pagina dei progetti
   const [projectFilters, setProjectFilters] = useState({});
 
-  const [quotes, setQuotes] = useState([
-    {
-      id: 1,
-      quoteNumber: 'PREV-2024-001',
-      date: '2024-07-15',
-      customerId: 1, // Mario Rossi
-      projectId: 1, // Ristrutturazione Villa
-      items: [
-        { description: 'Fornitura e posa Marmo Carrara', quantity: 20, unitPrice: 180, materialId: 1 },
-        { description: 'Lavorazione speciale taglio', quantity: 1, unitPrice: 500, materialId: '' },
-      ],
-      total: 4100,
-      notes: 'Sconto 5% applicato sul totale.',
-      status: 'Inviato', // Bozza, Inviato, Accettato, Rifiutato, Scaduto
-      validityDays: 30,
-    },
-    {
-      id: 2,
-      quoteNumber: 'PREV-2024-002',
-      date: '2024-07-20',
-      customerId: 2, // Azienda ABC S.r.l.
-      projectId: 2, // Pavimentazione Uffici
-      items: [
-        { description: 'Granito Nero Assoluto per top', quantity: 15, unitPrice: 220, materialId: 2 },
-        { description: 'Colla H40', quantity: 5, unitPrice: 15.50, materialId: 3 },
-      ],
-      total: 3377.50,
-      notes: '',
-      status: 'Accettato',
-      validityDays: 15,
-    },
-  ]);
+  const {
+    data: quotes,
+    addItem: addQuote,
+    updateItem: updateQuote,
+    deleteItem: deleteQuote,
+  } = useNetworkStorage('quotes');
+  
+  const setQuotes = (newQuotes) => {
+    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
+  };
 
-  const [invoices, setInvoices] = useState([
-    {
-      id: 1,
-      invoiceNumber: 'FATT-2024-001',
-      date: '2024-07-25',
-      customerId: 2, // Azienda ABC S.r.l.
-      quoteId: 2, // PREV-2024-002
-      items: [
-        { description: 'Granito Nero Assoluto per top', quantity: 15, unitPrice: 220, materialId: 2 },
-        { description: 'Colla H40', quantity: 5, unitPrice: 15.50, materialId: 3 },
-      ],
-      total: 3377.50,
-      taxRate: 22,
-      taxAmount: 743.05,
-      grandTotal: 4120.55,
-      paymentTerms: 'Bonifico bancario a 30 giorni',
-      notes: 'Fattura relativa al preventivo PREV-2024-002.',
-      status: 'Emessa', // Bozza, Emessa, Pagata, Scaduta, Annullata
-    },
-  ]);
+  // Le definizioni di invoices, customers, projects e quotes sono ora gestite da useNetworkStorage sopra
 
-  // Dati centralizzati per l'applicazione
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      code: 'CLI-001',
-      name: 'Mario Rossi',
-      email: 'mario.rossi@email.com',
-      phone: '+39 123 456 7890',
-      address: 'Via Roma 123, Milano',
-      type: 'Privato',
-    },
-    {
-      id: 2,
-      code: 'CLI-002',
-      name: 'Azienda ABC S.r.l.',
-      email: 'info@aziendaabc.it',
-      phone: '+39 098 765 4321',
-      address: 'Via Milano 456, Roma',
-      type: 'Azienda',
-    },
-  ]);
 
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      code: 'PRJ-001',
-      name: 'Ristrutturazione Villa',
-      client: 'Mario Rossi', // Collegato a customers[0]
-      clientId: 1,
-      startDate: '2024-01-10',
-      deadline: '2024-03-15',
-      budget: '€ 25.000,00',
-      status: 'In Corso',
-    },
-    {
-      id: 2,
-      code: 'PRJ-002',
-      name: 'Pavimentazione Uffici',
-      client: 'Azienda ABC S.r.l.', // Collegato a customers[1]
-      clientId: 2,
-      startDate: '2024-02-01',
-      deadline: '2024-04-30',
-      budget: '€ 45.000,00',
-      status: 'In Attesa',
-    },
-    {
-      id: 3,
-      code: 'PRJ-003',
-      name: 'Nuova Costruzione Residenziale',
-      client: 'Luigi Verdi',
-      clientId: null, // Cliente non ancora in lista o da creare
-      startDate: '2024-03-01',
-      deadline: '2024-09-30',
-      budget: '€ 150.000,00',
-      status: 'Completato',
-    },
-    {
-      id: 4,
-      code: 'PRJ-004',
-      name: 'Manutenzione Condominiale',
-      client: 'Condominio Centrale',
-      clientId: null, // Cliente non ancora in lista o da creare
-      startDate: '2024-05-15',
-      deadline: '2024-06-15',
-      budget: '€ 5.000,00',
-      status: 'In Corso',
-    },
-  ]);
 
   const toggleDarkMode = () => {
     const isDark = document.documentElement.classList.toggle('dark');
@@ -335,15 +241,41 @@ const App = () => {
       onNavigate: handleNavigation,
       currentUser: { displayName: 'Utente' }, // Esempio, da rendere dinamico
       customers,
-      setCustomers,
+      setCustomers: (newCustomers) => {
+        // Compatibilità: se viene passato un array, sostituisce tutti i dati
+        // Altrimenti usa le funzioni specifiche di useNetworkStorage
+      },
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
       projects,
-      setProjects,
-      materials, // Aggiunto materials
-      setMaterials, // Aggiunto setMaterials
-      quotes, // Aggiunto quotes
-      setQuotes, // Aggiunto setQuotes
-      invoices, // Aggiunto invoices
-      setInvoices, // Aggiunto setInvoices
+      setProjects: (newProjects) => {
+        // Compatibilità per progetti
+      },
+      addProject,
+      updateProject,
+      deleteProject,
+      materials,
+      setMaterials: (newMaterials) => {
+        // Compatibilità per materiali
+      },
+      addMaterial,
+      updateMaterial,
+      deleteMaterial,
+      quotes,
+      setQuotes: (newQuotes) => {
+        // Compatibilità per preventivi
+      },
+      addQuote,
+      updateQuote,
+      deleteQuote,
+      invoices,
+      setInvoices: (newInvoices) => {
+        // Compatibilità per fatture
+      },
+      addInvoice,
+      updateInvoice,
+      deleteInvoice,
       darkMode,
       toggleDarkMode,
       notificationPrefs,

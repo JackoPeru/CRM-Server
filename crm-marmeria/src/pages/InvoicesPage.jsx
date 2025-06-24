@@ -7,7 +7,10 @@ const InvoicesPage = ({
   customers, 
   projects, 
   quotes, 
-  onNavigate 
+  onNavigate,
+  addInvoice,
+  updateInvoice,
+  deleteInvoice
 }) => {
   const [invoices, setInvoices] = useState(initialInvoices || []);
   const [searchTerm, setSearchTerm] = useState('');
@@ -94,18 +97,16 @@ const InvoicesPage = ({
 
   const handleAddInvoice = (e) => {
     e.preventDefault();
-    const newId = invoices.length > 0 ? Math.max(...invoices.map(inv => inv.id)) + 1 : 1;
     const generatedInvoiceNumber = generateInvoiceNumber(newInvoice.date);
     const invoiceToAdd = {
       ...newInvoice,
-      id: newId,
       invoiceNumber: generatedInvoiceNumber, // Added auto-generated number
       total: calculateInvoiceTotal(newInvoice.items),
       customerId: parseInt(newInvoice.customerId),
       projectId: newInvoice.projectId ? parseInt(newInvoice.projectId) : null,
       quoteId: newInvoice.quoteId ? parseInt(newInvoice.quoteId) : null,
     };
-    setAppInvoices((prevInvoices) => [...(prevInvoices || []), invoiceToAdd]);
+    addInvoice(invoiceToAdd);
     setIsModalOpen(false);
     setNewInvoice({
       // invoiceNumber: '', // Removed
@@ -147,11 +148,8 @@ const InvoicesPage = ({
 
   const handleUpdateInvoice = (e) => {
     e.preventDefault();
-    setAppInvoices((prevInvoices) =>
-      (prevInvoices || []).map((inv) =>
-        inv.id === currentInvoice.id ? { ...currentInvoice, total: calculateInvoiceTotal(currentInvoice.items) } : inv
-      )
-    );
+    const updatedInvoice = { ...currentInvoice, total: calculateInvoiceTotal(currentInvoice.items) };
+    updateInvoice(currentInvoice.id, updatedInvoice);
     setIsEditModalOpen(false);
     setCurrentInvoice(null);
   };
@@ -163,9 +161,7 @@ const InvoicesPage = ({
 
   const handleDeleteInvoice = () => {
     if (invoiceToDeleteId) {
-      setAppInvoices((prevInvoices) =>
-        (prevInvoices || []).filter((invoice) => invoice.id !== invoiceToDeleteId)
-      );
+      deleteInvoice(invoiceToDeleteId);
       setIsConfirmDeleteModalOpen(false);
       setInvoiceToDeleteId(null);
     }

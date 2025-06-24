@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.ELECTRON_BUILD === 'true' ? './' : (process.env.NODE_ENV === 'production' ? '/Crm-Marmeria/' : '/'),
+  base: './',
   server: {
     port: 5173,
   },

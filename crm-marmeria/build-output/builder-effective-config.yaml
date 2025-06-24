@@ -1,0 +1,13 @@
+directories:
+  output: build-output
+  buildResources: build
+appId: com.crmmarmeria.app
+productName: CRM Marmeria
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+win:
+  target: portable
+  artifactName: CRM-Marmeria-Setup.exe
+electronVersion: 28.3.3

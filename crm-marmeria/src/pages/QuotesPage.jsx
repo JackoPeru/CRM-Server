@@ -7,7 +7,10 @@ const QuotesPage = ({
   customers, 
   projects, 
   materials, 
-  onNavigate 
+  onNavigate,
+  addQuote,
+  updateQuote,
+  deleteQuote
 }) => {
   const [quotes, setQuotes] = useState(initialQuotes || []);
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,17 +106,15 @@ const QuotesPage = ({
 
   const handleAddQuote = (e) => {
     e.preventDefault();
-    const newId = quotes.length > 0 ? Math.max(...quotes.map(q => q.id)) + 1 : 1;
     const generatedQuoteNumber = generateQuoteNumber(newQuote.date);
     const quoteToAdd = {
       ...newQuote,
-      id: newId,
       quoteNumber: generatedQuoteNumber, // Added auto-generated number
       total: calculateTotal(newQuote.items),
       customerId: parseInt(newQuote.customerId),
       projectId: newQuote.projectId ? parseInt(newQuote.projectId) : null,
     };
-    setAppQuotes((prevQuotes) => [...(prevQuotes || []), quoteToAdd]);
+    addQuote(quoteToAdd);
     setIsModalOpen(false);
     setNewQuote({
       // quoteNumber: '', // Removed
@@ -164,11 +165,8 @@ const QuotesPage = ({
 
   const handleUpdateQuote = (e) => {
     e.preventDefault();
-    setAppQuotes((prevQuotes) =>
-      (prevQuotes || []).map((q) =>
-        q.id === currentQuote.id ? { ...currentQuote, total: calculateTotal(currentQuote.items) } : q
-      )
-    );
+    const updatedQuote = { ...currentQuote, total: calculateTotal(currentQuote.items) };
+    updateQuote(currentQuote.id, updatedQuote);
     setIsEditModalOpen(false);
     setCurrentQuote(null);
   };
@@ -180,9 +178,7 @@ const QuotesPage = ({
 
   const handleDeleteQuote = () => {
     if (quoteToDeleteId) {
-      setAppQuotes((prevQuotes) =>
-        (prevQuotes || []).filter((quote) => quote.id !== quoteToDeleteId)
-      );
+      deleteQuote(quoteToDeleteId);
       setIsConfirmDeleteModalOpen(false);
       setQuoteToDeleteId(null);
     }

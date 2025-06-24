@@ -17,6 +17,11 @@
     "build:linux": "cross-env ELECTRON_BUILD=true vite build && electron-builder --linux"
   },
     "dependencies": {
+        "express": "^4.18.2",
+        "socket.io": "^4.7.4",
+        "socket.io-client": "^4.7.4",
+        "cors": "^2.8.5",
+        "node-fetch": "^3.3.2",
         "lucide-react": "^0.322.0",
         "react": "^18.3.0",
         "react-dom": "^18.3.0",
@@ -37,14 +42,18 @@
     "appId": "com.crmmarmeria.app",
     "productName": "CRM Marmeria",
     "directories": {
-      "output": "dist-electron"
+      "output": "installer-output"
     },
     "files": [
       "dist/**/*",
       "electron/**/*"
     ],
     "win": {
-      "target": "portable"
+      "target": {
+        "target": "portable",
+        "arch": ["x64"]
+      },
+      "artifactName": "CRM-Marmeria-Installer-${version}.exe"
     }
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from './useLocalStorage';
+import useRealtimeSync from './useRealtimeSync';
 
 // Hook per la gestione dei dati con supporto di rete
 const useNetworkStorage = (collectionName) => {
@@ -20,6 +21,10 @@ const useNetworkStorage = (collectionName) => {
   
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'error'
+  const [data, setData] = useState(localStorageHook.data);
+  
+  // Hook per la sincronizzazione in tempo reale
+  const realtimeSync = useRealtimeSync(collectionName, networkPrefs);
 
   // Monitora lo stato della connessione internet
   useEffect(() => {
@@ -34,6 +39,44 @@ const useNetworkStorage = (collectionName) => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+  
+  // Listener per aggiornamenti in tempo reale
+  useEffect(() => {
+    const handleDataSynced = (event) => {
+      if (event.detail.collection === collectionName) {
+        setData(event.detail.data);
+        setNetworkPrefs(prev => ({ 
+          ...prev, 
+          lastSync: event.detail.timestamp,
+          connectionStatus: 'connected'
+        }));
+      }
+    };
+    
+    const handleDataUpdated = (event) => {
+      if (event.detail.collection === collectionName) {
+        setData(event.detail.data);
+        setNetworkPrefs(prev => ({ 
+          ...prev, 
+          lastSync: event.detail.timestamp,
+          connectionStatus: 'connected'
+        }));
+      }
+    };
+    
+    window.addEventListener('data-synced', handleDataSynced);
+    window.addEventListener('data-updated', handleDataUpdated);
+    
+    return () => {
+      window.removeEventListener('data-synced', handleDataSynced);
+      window.removeEventListener('data-updated', handleDataUpdated);
+    };
+  }, [collectionName]);
+  
+  // Sincronizza i dati locali con quelli del localStorage hook
+  useEffect(() => {
+    setData(localStorageHook.data);
+  }, [localStorageHook.data]);
 
   // Funzione per testare la connessione al server
   const testConnection = useCallback(async () => {
@@ -114,45 +157,68 @@ const useNetworkStorage = (collectionName) => {
   // Override delle funzioni CRUD per supportare la sincronizzazione
   const addItem = async (item) => {
     try {
-      // Aggiungi localmente
-      const newItem = await localStorageHook.addItem(item);
-      
-      // Se siamo in modalità client, prova a sincronizzare
-      if (networkPrefs.mode === 'client' && isOnline) {
-        await syncWithServer();
+      // Se siamo connessi in tempo reale, invia direttamente al server
+      if (networkPrefs.mode === 'client' && realtimeSync.isConnected) {
+        const result = await realtimeSync.sendOperation('add', item);
+        return result.item;
+      } else {
+        // Altrimenti aggiungi localmente
+        const newItem = await localStorageHook.addItem(item);
+        
+        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
+        if (networkPrefs.mode === 'client' && isOnline) {
+          await syncWithServer();
+        }
+        
+        return newItem;
       }
-      
-      return newItem;
     } catch (error) {
-      throw error;
+      // Fallback: aggiungi localmente se l'operazione remota fallisce
+      console.warn('Operazione remota fallita, salvataggio locale:', error);
+      return await localStorageHook.addItem(item);
     }
   };
 
   const updateItem = async (id, updates) => {
     try {
-      // Aggiorna localmente
-      await localStorageHook.updateItem(id, updates);
-      
-      // Se siamo in modalità client, prova a sincronizzare
-      if (networkPrefs.mode === 'client' && isOnline) {
-        await syncWithServer();
+      // Se siamo connessi in tempo reale, invia direttamente al server
+      if (networkPrefs.mode === 'client' && realtimeSync.isConnected) {
+        const result = await realtimeSync.sendOperation('update', updates, id);
+        return result.item;
+      } else {
+        // Altrimenti aggiorna localmente
+        await localStorageHook.updateItem(id, updates);
+        
+        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
+        if (networkPrefs.mode === 'client' && isOnline) {
+          await syncWithServer();
+        }
       }
     } catch (error) {
-      throw error;
+      // Fallback: aggiorna localmente se l'operazione remota fallisce
+      console.warn('Operazione remota fallita, aggiornamento locale:', error);
+      await localStorageHook.updateItem(id, updates);
     }
   };
 
   const deleteItem = async (id) => {
     try {
-      // Elimina localmente
-      await localStorageHook.deleteItem(id);
-      
-      // Se siamo in modalità client, prova a sincronizzare
-      if (networkPrefs.mode === 'client' && isOnline) {
-        await syncWithServer();
+      // Se siamo connessi in tempo reale, invia direttamente al server
+      if (networkPrefs.mode === 'client' && realtimeSync.isConnected) {
+        await realtimeSync.sendOperation('delete', null, id);
+      } else {
+        // Altrimenti elimina localmente
+        await localStorageHook.deleteItem(id);
+        
+        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
+        if (networkPrefs.mode === 'client' && isOnline) {
+          await syncWithServer();
+        }
       }
     } catch (error) {
-      throw error;
+      // Fallback: elimina localmente se l'operazione remota fallisce
+      console.warn('Operazione remota fallita, eliminazione locale:', error);
+      await localStorageHook.deleteItem(id);
     }
   };
 
@@ -172,7 +238,8 @@ const useNetworkStorage = (collectionName) => {
   };
 
   return {
-    ...localStorageHook,
+    // Dati e funzioni CRUD
+    data,
     addItem,
     updateItem,
     deleteItem,
@@ -183,6 +250,16 @@ const useNetworkStorage = (collectionName) => {
     testConnection,
     syncWithServer,
     sendToServer,
+    // Funzioni di sincronizzazione in tempo reale
+    isRealtimeConnected: realtimeSync.isConnected,
+    realtimeSyncStatus: realtimeSync.syncStatus,
+    lastSync: realtimeSync.lastSync || networkPrefs.lastSync,
+    requestFullSync: realtimeSync.requestFullSync,
+    // Funzioni di compatibilità
+    setData: (newData) => {
+      // Manteniamo la compatibilità ma non è più necessario
+      console.warn('setData è deprecato, i dati vengono gestiti automaticamente');
+    }
   };
 };
 

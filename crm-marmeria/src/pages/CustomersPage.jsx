@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, Edit, Trash, Search, Plus, Filter, X } from 'lucide-react';
 
-const CustomersPage = ({ customers, setCustomers, onNavigate }) => {
+const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, deleteCustomer, onNavigate }) => {
   const [filters, setFilters] = useState({ type: '', hasVat: '' });
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,9 +26,7 @@ const CustomersPage = ({ customers, setCustomers, onNavigate }) => {
 
   const handleAddCustomer = (e) => {
     e.preventDefault();
-    const newId = customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1;
-    const customerToAdd = { ...newCustomer, id: newId };
-    setCustomers((prevCustomers) => [...prevCustomers, customerToAdd]);
+    addCustomer(newCustomer);
     setIsModalOpen(false);
     setNewCustomer({
       name: '',
@@ -46,11 +44,7 @@ const CustomersPage = ({ customers, setCustomers, onNavigate }) => {
 
   const handleUpdateCustomer = (e) => {
     e.preventDefault();
-    setCustomers((prevCustomers) =>
-      prevCustomers.map((cust) =>
-        cust.id === currentCustomer.id ? { ...currentCustomer } : cust
-      )
-    );
+    updateCustomer(currentCustomer.id, currentCustomer);
     setIsEditModalOpen(false);
     setCurrentCustomer(null);
   };
@@ -65,9 +59,7 @@ const CustomersPage = ({ customers, setCustomers, onNavigate }) => {
 
   const handleDeleteCustomer = () => {
     if (customerToDelete !== null) {
-      setCustomers((prevCustomers) =>
-        prevCustomers.filter((customer) => customer.id !== customerToDelete)
-      );
+      deleteCustomer(customerToDelete);
       setCustomerToDelete(null);
       setIsConfirmDeleteModalOpen(false);
     }

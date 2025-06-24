@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Edit, Trash, Search, Plus, Filter, X } from 'lucide-react';
 
-const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMaterials, onNavigate }) => {
+const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMaterials, onNavigate, addMaterial, updateMaterial, deleteMaterial }) => {
   const [materials, setMaterials] = useState(initialMaterials || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredMaterials, setFilteredMaterials] = useState([]);
@@ -18,7 +18,6 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
     description: '',
     unit: '', // e.g., m², kg, pz
     price: '', // Prezzo unitario
-    supplier: '',
     supplier: '',
   });
 
@@ -45,13 +44,11 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
 
   const handleAddMaterial = (e) => {
     e.preventDefault();
-    const newId = materials.length > 0 ? Math.max(...materials.map(m => m.id)) + 1 : 1;
     const materialToAdd = {
       ...newMaterial,
-      id: newId,
       price: newMaterial.price ? `€ ${parseFloat(newMaterial.price).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '€ 0,00'
     };
-    setAppMaterials((prevMaterials) => [...(prevMaterials || []), materialToAdd]);
+    addMaterial(materialToAdd);
     setIsModalOpen(false);
     setNewMaterial({
       name: '',
@@ -70,11 +67,8 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
 
   const handleUpdateMaterial = (e) => {
     e.preventDefault();
-    setAppMaterials((prevMaterials) =>
-      (prevMaterials || []).map((mat) =>
-        mat.id === currentMaterial.id ? { ...currentMaterial, price: currentMaterial.price ? `€ ${parseFloat(currentMaterial.price).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '€ 0,00' } : mat
-      )
-    );
+    const updatedMaterial = { ...currentMaterial, price: currentMaterial.price ? `€ ${parseFloat(currentMaterial.price).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '€ 0,00' };
+    updateMaterial(currentMaterial.id, updatedMaterial);
     setIsEditModalOpen(false);
     setCurrentMaterial(null);
   };
@@ -86,9 +80,7 @@ const MaterialsPage = ({ materials: initialMaterials, setMaterials: setAppMateri
 
   const handleDeleteMaterial = () => {
     if (materialToDeleteId) {
-      setAppMaterials((prevMaterials) =>
-        (prevMaterials || []).filter((material) => material.id !== materialToDeleteId)
-      );
+      deleteMaterial(materialToDeleteId);
       setIsConfirmDeleteModalOpen(false);
       setMaterialToDeleteId(null);
     }

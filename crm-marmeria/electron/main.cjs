@@ -104,7 +104,7 @@ ipcMain.handle('server-status', async () => {
 
 ipcMain.handle('test-connection', async (event, serverAddress, serverPort) => {
   try {
-    const fetch = require('node-fetch');
+    const { default: fetch } = await import('node-fetch');
     const response = await fetch(`http://${serverAddress}:${serverPort}/api/health`, {
       method: 'GET',
       timeout: 5000,
@@ -119,7 +119,7 @@ ipcMain.handle('test-connection', async (event, serverAddress, serverPort) => {
 // Handler per sincronizzare i dati
 ipcMain.handle('sync-data', async (event, collection, serverAddress, serverPort) => {
   try {
-    const fetch = require('node-fetch');
+    const { default: fetch } = await import('node-fetch');
     const response = await fetch(`http://${serverAddress}:${serverPort}/api/data/${collection}`);
     
     if (response.ok) {
