@@ -99,28 +99,28 @@ const App = () => {
     addItem: addMaterial,
     updateItem: updateMaterial,
     deleteItem: deleteMaterial,
-  } = useNetworkStorage('materials');
+  } = useNetworkStorage('materials', networkPrefs);
   
   const {
     data: customers,
     addItem: addCustomer,
     updateItem: updateCustomer,
     deleteItem: deleteCustomer,
-  } = useNetworkStorage('customers');
+  } = useNetworkStorage('customers', networkPrefs);
   
   const {
     data: projects,
     addItem: addProject,
     updateItem: updateProject,
     deleteItem: deleteProject,
-  } = useNetworkStorage('projects');
+  } = useNetworkStorage('projects', networkPrefs);
   
   const {
     data: invoices,
     addItem: addInvoice,
     updateItem: updateInvoice,
     deleteItem: deleteInvoice,
-  } = useNetworkStorage('invoices');
+  } = useNetworkStorage('invoices', networkPrefs);
   
   // Setter functions per compatibilità con i componenti esistenti
   const setMaterials = (newMaterials) => {
@@ -143,7 +143,7 @@ const App = () => {
     addItem: addQuote,
     updateItem: updateQuote,
     deleteItem: deleteQuote,
-  } = useNetworkStorage('quotes');
+  } = useNetworkStorage('quotes', networkPrefs);
   
   const setQuotes = (newQuotes) => {
     // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
