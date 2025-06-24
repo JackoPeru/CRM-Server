@@ -6,6 +6,13 @@ yarn-error.log*
 dist
 dist-electron
 
+# Build and release files
+releases/
+temp-app/
+app-updated.asar
+*.exe
+*.asar
+
 # IDE/editor
 .vscode
 .idea

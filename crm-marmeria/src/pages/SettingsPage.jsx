@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer } from 'lucide-react'; // Icone per le sezioni
+import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer, Network, Server, Wifi } from 'lucide-react'; // Icone per le sezioni
 
 // Componente Switch personalizzato con animazione
 const AnimatedSwitch = ({ id, checked, onChange, label }) => {
@@ -34,8 +34,192 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
 };
 
 import { Database } from 'lucide-react'; // Importa l'icona per le preferenze dati
+import { useState, useEffect } from 'react';
 
-const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotificationPref, dataPrefs, updateDataPref, formattingPrefs, updateFormattingPref, fiscalPrefs, updateFiscalPref, printPrefs, updatePrintPref }) => {
+const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotificationPref, dataPrefs, updateDataPref, formattingPrefs, updateFormattingPref, fiscalPrefs, updateFiscalPref, printPrefs, updatePrintPref, networkPrefs, updateNetworkPref }) => {
+  const [serverStatus, setServerStatus] = useState({ isRunning: false, port: null });
+  const [localIP, setLocalIP] = useState('');
+
+  // Carica lo stato del server e l'IP locale all'avvio
+  useEffect(() => {
+    const loadServerInfo = async () => {
+      try {
+        // Verifica se electronAPI è disponibile
+        if (window.electronAPI && window.electronAPI.network) {
+          const status = await window.electronAPI.network.getServerStatus();
+          setServerStatus(status);
+          
+          const ipResult = await window.electronAPI.network.getLocalIP();
+          if (ipResult.success) {
+            setLocalIP(ipResult.ip);
+          }
+        } else {
+          console.log('ElectronAPI non disponibile - modalità browser');
+        }
+      } catch (error) {
+        console.error('Errore caricamento info server:', error);
+      }
+    };
+    
+    loadServerInfo();
+    
+    // Controlla lo stato del server ogni 5 secondi se siamo in modalità master
+    const interval = setInterval(() => {
+      if (networkPrefs.mode === 'master' && window.electronAPI && window.electronAPI.network) {
+        loadServerInfo();
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [networkPrefs.mode]);
+
+  const handleTestConnection = async () => {
+    if (networkPrefs.mode !== 'client') return;
+    
+    try {
+      // Verifica se electronAPI è disponibile
+      if (!window.electronAPI || !window.electronAPI.network) {
+        // Simulazione per il browser - solo per test UI
+        console.log('🌐 Modalità browser: simulazione test connessione');
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ [SIMULAZIONE BROWSER] Connessione riuscita!\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
+        return;
+      }
+      
+      const result = await window.electronAPI.network.testConnection(
+        networkPrefs.serverAddress,
+        networkPrefs.serverPort
+      );
+      
+      if (result.success) {
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ Connessione riuscita!');
+      } else {
+        updateNetworkPref('connectionStatus', 'disconnected');
+        alert('❌ Connessione fallita: ' + (result.error || 'Server non raggiungibile'));
+      }
+    } catch (error) {
+      console.error('Errore test connessione:', error);
+      alert('❌ Errore durante il test: ' + error.message);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    if (networkPrefs.mode !== 'client') return;
+    
+    try {
+      // Verifica se electronAPI è disponibile
+      if (!window.electronAPI || !window.electronAPI.network) {
+        // Simulazione per il browser - solo per test UI
+        console.log('🌐 Modalità browser: simulazione sincronizzazione');
+        updateNetworkPref('lastSync', new Date().toISOString());
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ [SIMULAZIONE BROWSER] Sincronizzazione completata!\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
+        return;
+      }
+      
+      const collections = ['customers', 'projects', 'materials', 'invoices'];
+      let syncSuccess = true;
+      
+      for (const collection of collections) {
+        const result = await window.electronAPI.network.syncData(
+          collection,
+          networkPrefs.serverAddress,
+          networkPrefs.serverPort
+        );
+        
+        if (!result.success) {
+          syncSuccess = false;
+          break;
+        }
+      }
+      
+      if (syncSuccess) {
+        updateNetworkPref('lastSync', new Date().toISOString());
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ Sincronizzazione completata!');
+      } else {
+        updateNetworkPref('connectionStatus', 'disconnected');
+        alert('❌ Errore durante la sincronizzazione');
+      }
+    } catch (error) {
+      console.error('Errore sincronizzazione:', error);
+      alert('❌ Errore durante la sincronizzazione: ' + error.message);
+    }
+  };
+
+  const handleStartServer = async () => {
+    try {
+      // Verifica se electronAPI è disponibile
+      if (!window.electronAPI || !window.electronAPI.network) {
+        // Simulazione per il browser - solo per test UI
+        console.log('🌐 Modalità browser: simulazione avvio server');
+        const port = networkPrefs.masterPort || 3001;
+        setServerStatus({ isRunning: true, port });
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ [SIMULAZIONE BROWSER] Server avviato sulla porta ' + port + '\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
+        return;
+      }
+      
+      const port = networkPrefs.masterPort || 3001;
+      const result = await window.electronAPI.network.startServer(port);
+      
+      if (result.success) {
+        // Rileggi lo stato del server dal backend per assicurarsi che sia aggiornato
+        const status = await window.electronAPI.network.getServerStatus();
+        setServerStatus(status);
+        updateNetworkPref('connectionStatus', 'connected');
+        alert('✅ Server avviato sulla porta ' + port);
+      } else {
+        alert('❌ Errore avvio server: ' + (result.error || 'Errore sconosciuto'));
+      }
+    } catch (error) {
+      console.error('Errore avvio server:', error);
+      alert('❌ Errore durante l\'avvio del server: ' + error.message);
+    }
+  };
+
+  const handleStopServer = async () => {
+    try {
+      // Verifica se electronAPI è disponibile
+      if (!window.electronAPI || !window.electronAPI.network) {
+        // Simulazione per il browser - solo per test UI
+        console.log('🌐 Modalità browser: simulazione arresto server');
+        setServerStatus({ isRunning: false, port: null });
+        updateNetworkPref('connectionStatus', 'disconnected');
+        alert('✅ [SIMULAZIONE BROWSER] Server fermato\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
+        return;
+      }
+      
+      const result = await window.electronAPI.network.stopServer();
+      
+      if (result.success) {
+        // Rileggi lo stato del server dal backend per assicurarsi che sia aggiornato
+        const status = await window.electronAPI.network.getServerStatus();
+        setServerStatus(status);
+        updateNetworkPref('connectionStatus', 'disconnected');
+        alert('✅ Server fermato');
+      } else {
+        alert('❌ Errore arresto server: ' + (result.error || 'Errore sconosciuto'));
+      }
+    } catch (error) {
+      console.error('Errore arresto server:', error);
+      alert('❌ Errore durante l\'arresto del server: ' + error.message);
+    }
+  };
+
+  // Salva le preferenze di rete quando cambiano
+  const handleNetworkPrefChange = async (key, value) => {
+    updateNetworkPref(key, value);
+    
+    // Salva anche tramite Electron per gestire il server
+    try {
+      const updatedPrefs = { ...networkPrefs, [key]: value };
+      await window.electronAPI.network.saveNetworkPrefs(updatedPrefs);
+    } catch (error) {
+      console.error('Errore salvataggio preferenze:', error);
+    }
+  };
 
   return (
     <div className="p-4 md:p-8 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
@@ -92,6 +276,181 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
           onChange={() => toggleNotificationPref('inAppDeadlines')}
           label="Notifiche In-App per Scadenze"
         />
+      </div>
+
+      {/* Sezione Condivisione Dati */}
+      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
+          <Network size={24} className="mr-3 text-blue-500" /> Condivisione Dati
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="networkMode" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Modalità di Funzionamento</label>
+            <select 
+              id="networkMode" 
+              value={networkPrefs.mode}
+              onChange={(e) => handleNetworkPrefChange('mode', e.target.value)}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="standalone">🖥️ Standalone (Solo questo PC)</option>
+              <option value="master">🏠 Master (Server - Condivide i dati)</option>
+              <option value="client">📡 Client (Si connette al Master)</option>
+            </select>
+          </div>
+          
+          {networkPrefs.mode === 'client' && (
+            <>
+              <div>
+                <label htmlFor="serverAddress" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Indirizzo IP Server Master</label>
+                <input 
+                  type="text" 
+                  id="serverAddress" 
+                  value={networkPrefs.serverAddress}
+                  onChange={(e) => handleNetworkPrefChange('serverAddress', e.target.value)}
+                  placeholder="192.168.1.100"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="serverPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server</label>
+                <input 
+                  type="number" 
+                  id="serverPort" 
+                  value={networkPrefs.serverPort}
+                  onChange={(e) => handleNetworkPrefChange('serverPort', e.target.value)}
+                  placeholder="3001"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </>
+          )}
+          
+          {networkPrefs.mode === 'master' && (
+            <div>
+              <label htmlFor="masterPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server (Master)</label>
+              <input 
+                type="number" 
+                id="masterPort" 
+                value={networkPrefs.masterPort}
+                onChange={(e) => handleNetworkPrefChange('masterPort', e.target.value)}
+                placeholder="3001"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center">
+              <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Stato Connessione:</span>
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                networkPrefs.connectionStatus === 'connected' 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+              }`}>
+                {networkPrefs.connectionStatus === 'connected' ? '🟢 Connesso' : '🔴 Disconnesso'}
+              </span>
+            </div>
+            
+            {networkPrefs.mode === 'master' && (
+              <div className="flex items-center">
+                <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Stato Server:</span>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  serverStatus.isRunning
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                }`}>
+                  {serverStatus.isRunning ? '🟣 Server Attivo' : '⚫ Server Inattivo'}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {networkPrefs.lastSync && (
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Ultima sincronizzazione: {new Date(networkPrefs.lastSync).toLocaleString('it-IT')}
+            </div>
+          )}
+          
+          <div className="flex space-x-3">
+            <button 
+              onClick={handleTestConnection}
+              disabled={networkPrefs.mode !== 'client'}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md text-sm"
+            >
+              🔍 Testa Connessione
+            </button>
+            <button 
+              onClick={handleSyncNow}
+              disabled={networkPrefs.mode !== 'client'}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md text-sm"
+            >
+              🔄 Sincronizza Ora
+            </button>
+            {networkPrefs.mode === 'master' && (
+              <div className="space-y-3">
+                {localIP && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>IP Locale:</strong> {localIP}:{networkPrefs.masterPort || 3001}
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      Condividi questo indirizzo con i PC client
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  {!serverStatus.isRunning ? (
+                    <button
+                      onClick={handleStartServer}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm"
+                    >
+                      🚀 Avvia Server
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopServer}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
+                    >
+                      🛑 Ferma Server
+                    </button>
+                  )}
+                </div>
+                
+                {serverStatus.isRunning && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                      ✅ Server attivo sulla porta {serverStatus.port}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">ℹ️ Informazioni Modalità:</h4>
+            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              {networkPrefs.mode === 'standalone' && (
+                <li>• I dati sono salvati solo su questo PC</li>
+              )}
+              {networkPrefs.mode === 'master' && (
+                <>
+                  <li>• Questo PC condivide i suoi dati con altri PC Client</li>
+                  <li>• Avvia automaticamente un server locale per la condivisione</li>
+                  <li>• I dati principali risiedono su questo PC</li>
+                </>
+              )}
+              {networkPrefs.mode === 'client' && (
+                <>
+                  <li>• Questo PC si connette a un PC Master per sincronizzare i dati</li>
+                  <li>• I dati vengono scaricati dal server Master</li>
+                  <li>• Funziona anche offline con cache locale</li>
+                </>
+              )}
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Sezione Preferenze Dati */}

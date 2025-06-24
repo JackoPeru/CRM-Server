@@ -79,6 +79,19 @@ const App = () => {
       logoUrl: '',
     };
   });
+  const [networkPrefs, setNetworkPrefs] = useState(() => {
+    const savedNetworkPrefs = localStorage.getItem('networkPrefs');
+    return savedNetworkPrefs ? JSON.parse(savedNetworkPrefs) : {
+      mode: 'standalone', // 'standalone', 'master', 'client'
+      serverAddress: '',
+      serverPort: '3001',
+      masterPort: '3001',
+      connectionStatus: 'disconnected', // 'connected', 'disconnected'
+      lastSync: null,
+      autoSync: true,
+      syncInterval: 30000, // 30 secondi
+    };
+  });
   const [materials, setMaterials] = useState([
     {
       id: 1,
@@ -295,6 +308,17 @@ const App = () => {
     });
   };
 
+  const updateNetworkPref = (prefKey, value) => {
+    setNetworkPrefs(prevPrefs => {
+      const newNetworkPrefs = {
+        ...prevPrefs,
+        [prefKey]: value,
+      };
+      localStorage.setItem('networkPrefs', JSON.stringify(newNetworkPrefs));
+      return newNetworkPrefs;
+    });
+  };
+
   // Modifico handleNavigation per accettare anche i filtri
   const handleNavigation = (pageId, filters = {}) => {
     setCurrentPage(pageId);
@@ -332,6 +356,8 @@ const App = () => {
       updateFiscalPref,
       printPrefs,
       updatePrintPref,
+      networkPrefs,
+      updateNetworkPref,
     };
 
     if (currentPage === 'dashboard') {
