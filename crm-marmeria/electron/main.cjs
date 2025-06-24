@@ -103,34 +103,77 @@ ipcMain.handle('server-status', async () => {
 });
 
 ipcMain.handle('test-connection', async (event, serverAddress, serverPort) => {
-  try {
-    const { default: fetch } = await import('node-fetch');
-    const response = await fetch(`http://${serverAddress}:${serverPort}/api/health`, {
+  return new Promise((resolve) => {
+    const http = require('http');
+    const options = {
+      hostname: serverAddress,
+      port: serverPort,
+      path: '/api/health',
       method: 'GET',
-      timeout: 5000,
+      timeout: 5000
+    };
+    
+    const req = http.request(options, (res) => {
+      resolve({ success: res.statusCode === 200, status: res.statusCode });
     });
     
-    return { success: response.ok, status: response.status };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+    req.on('error', (error) => {
+      resolve({ success: false, error: error.message });
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ success: false, error: 'Timeout connessione' });
+    });
+    
+    req.end();
+  });
 });
 
 // Handler per sincronizzare i dati
 ipcMain.handle('sync-data', async (event, collection, serverAddress, serverPort) => {
-  try {
-    const { default: fetch } = await import('node-fetch');
-    const response = await fetch(`http://${serverAddress}:${serverPort}/api/data/${collection}`);
+  return new Promise((resolve) => {
+    const http = require('http');
+    const options = {
+      hostname: serverAddress,
+      port: serverPort,
+      path: `/api/data/${collection}`,
+      method: 'GET',
+      timeout: 10000
+    };
     
-    if (response.ok) {
-      const data = await response.json();
-      return { success: true, data };
-    } else {
-      return { success: false, error: 'Errore nella risposta del server' };
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+    const req = http.request(options, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 200) {
+            const jsonData = JSON.parse(data);
+            resolve({ success: true, data: jsonData });
+          } else {
+            resolve({ success: false, error: `Errore server: ${res.statusCode}` });
+          }
+        } catch (error) {
+          resolve({ success: false, error: 'Errore parsing JSON' });
+        }
+      });
+    });
+    
+    req.on('error', (error) => {
+      resolve({ success: false, error: error.message });
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ success: false, error: 'Timeout connessione' });
+    });
+    
+    req.end();
+  });
 });
 
 // Handler per salvare le preferenze di rete

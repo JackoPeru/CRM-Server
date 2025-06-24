@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 
 // Hook per la sincronizzazione in tempo reale tramite WebSocket
