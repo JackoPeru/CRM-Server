@@ -38,9 +38,8 @@ import { useState, useEffect } from 'react';
 
 const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotificationPref, dataPrefs, updateDataPref, formattingPrefs, updateFormattingPref, fiscalPrefs, updateFiscalPref, printPrefs, updatePrintPref, networkPrefs, updateNetworkPref }) => {
   const [serverStatus, setServerStatus] = useState({ isRunning: false, port: null });
-  const [localIP, setLocalIP] = useState('');
 
-  // Carica lo stato del server e l'IP locale all'avvio
+  // Carica lo stato del server all'avvio
   useEffect(() => {
     const loadServerInfo = async () => {
       try {
@@ -48,11 +47,6 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         if (window.electronAPI && window.electronAPI.network) {
           const status = await window.electronAPI.network.getServerStatus();
           setServerStatus(status);
-          
-          const ipResult = await window.electronAPI.network.getLocalIP();
-          if (ipResult.success) {
-            setLocalIP(ipResult.ip);
-          }
         } else {
           console.log('ElectronAPI non disponibile - modalità browser');
         }
@@ -86,17 +80,16 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         return;
       }
       
-      const result = await window.electronAPI.network.testConnection(
-        networkPrefs.serverAddress,
-        networkPrefs.serverPort
+      const result = await window.electronAPI.network.testMasterConnection(
+        networkPrefs.masterPath
       );
       
       if (result.success) {
         updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ Connessione riuscita!');
+        alert('✅ Connessione al PC master riuscita!');
       } else {
         updateNetworkPref('connectionStatus', 'disconnected');
-        alert('❌ Connessione fallita: ' + (result.error || 'Server non raggiungibile'));
+        alert('❌ Connessione fallita: ' + (result.error || 'Percorso non accessibile'));
       }
     } catch (error) {
       console.error('Errore test connessione:', error);
@@ -118,14 +111,13 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         return;
       }
       
-      const collections = ['customers', 'projects', 'materials', 'invoices'];
+      const collections = ['customers', 'projects', 'materials', 'invoices', 'quotes'];
       let syncSuccess = true;
       
       for (const collection of collections) {
-        const result = await window.electronAPI.network.syncData(
+        const result = await window.electronAPI.network.syncWithMaster(
           collection,
-          networkPrefs.serverAddress,
-          networkPrefs.serverPort
+          networkPrefs.masterPath
         );
         
         if (!result.success) {
@@ -161,15 +153,20 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         return;
       }
       
+      if (!networkPrefs.sharedPath) {
+        alert('❌ Errore: Specificare il percorso della cartella condivisa');
+        return;
+      }
+      
       const port = networkPrefs.masterPort || 3001;
-      const result = await window.electronAPI.network.startServer(port);
+      const result = await window.electronAPI.network.startServer(port, networkPrefs.sharedPath);
       
       if (result.success) {
         // Rileggi lo stato del server dal backend per assicurarsi che sia aggiornato
         const status = await window.electronAPI.network.getServerStatus();
         setServerStatus(status);
         updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ Server avviato sulla porta ' + port);
+        alert('✅ Server avviato sulla porta ' + port + '\nCartella condivisa: ' + networkPrefs.sharedPath);
       } else {
         alert('❌ Errore avvio server: ' + (result.error || 'Errore sconosciuto'));
       }
@@ -299,44 +296,50 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
           </div>
           
           {networkPrefs.mode === 'client' && (
+            <div>
+              <label htmlFor="masterPath" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Percorso Cartella Condivisa PC Master</label>
+              <input 
+                type="text" 
+                id="masterPath" 
+                value={networkPrefs.masterPath || ''}
+                onChange={(e) => handleNetworkPrefChange('masterPath', e.target.value)}
+                placeholder="\\\\192.168.1.100\\shared-crm o Z:\\shared-crm"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Inserisci il percorso di rete alla cartella condivisa del PC master (es: \\\\IP\\cartella o unità mappata)
+              </p>
+            </div>
+          )}
+          
+          {networkPrefs.mode === 'master' && (
             <>
               <div>
-                <label htmlFor="serverAddress" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Indirizzo IP Server Master</label>
-                <input 
-                  type="text" 
-                  id="serverAddress" 
-                  value={networkPrefs.serverAddress}
-                  onChange={(e) => handleNetworkPrefChange('serverAddress', e.target.value)}
-                  placeholder="192.168.1.100"
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="serverPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server</label>
+                <label htmlFor="masterPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server (Master)</label>
                 <input 
                   type="number" 
-                  id="serverPort" 
-                  value={networkPrefs.serverPort}
-                  onChange={(e) => handleNetworkPrefChange('serverPort', e.target.value)}
+                  id="masterPort" 
+                  value={networkPrefs.masterPort}
+                  onChange={(e) => handleNetworkPrefChange('masterPort', e.target.value)}
                   placeholder="3001"
                   className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
+              <div>
+                <label htmlFor="sharedPath" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Cartella Condivisa</label>
+                <input 
+                  type="text" 
+                  id="sharedPath" 
+                  value={networkPrefs.sharedPath || ''}
+                  onChange={(e) => handleNetworkPrefChange('sharedPath', e.target.value)}
+                  placeholder="C:\\CRM-Shared"
+                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Percorso locale della cartella che verrà condivisa con i PC client
+                </p>
+              </div>
             </>
-          )}
-          
-          {networkPrefs.mode === 'master' && (
-            <div>
-              <label htmlFor="masterPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server (Master)</label>
-              <input 
-                type="number" 
-                id="masterPort" 
-                value={networkPrefs.masterPort}
-                onChange={(e) => handleNetworkPrefChange('masterPort', e.target.value)}
-                placeholder="3001"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -388,17 +391,6 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
             </button>
             {networkPrefs.mode === 'master' && (
               <div className="space-y-3">
-                {localIP && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      <strong>IP Locale:</strong> {localIP}:{networkPrefs.masterPort || 3001}
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      Condividi questo indirizzo con i PC client
-                    </p>
-                  </div>
-                )}
-                
                 <div className="flex gap-2">
                   {!serverStatus.isRunning ? (
                     <button

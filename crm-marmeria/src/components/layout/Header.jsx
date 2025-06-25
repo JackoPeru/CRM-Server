@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Sun, Moon, UserCircle } from 'lucide-react';
+import { Menu, User, Settings, LogOut, Wifi, WifiOff, RefreshCw, UserCircle } from 'lucide-react';
 import Icon from '../common/Icon';
 
 const Header = ({
@@ -8,6 +8,9 @@ const Header = ({
   currentPage = 'dashboard',
   navItems = [],
   onOpenSidebar,
+  syncStatus = 'idle',
+  isOnline = true,
+  networkMode = 'standalone',
 }) => {
   // Trova l'etichetta della pagina corrente con gestione fallback
   const currentPageLabel = React.useMemo(() => {
@@ -38,6 +41,22 @@ const Header = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Indicatore stato sincronizzazione */}
+          {networkMode !== 'standalone' && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs" title={`Modalità: ${networkMode} - Stato: ${syncStatus}`}>
+              {syncStatus === 'syncing' ? (
+                <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
+              ) : isOnline ? (
+                <Wifi className="w-4 h-4 text-green-500" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-500" />
+              )}
+              <span className={`${syncStatus === 'syncing' ? 'text-blue-600' : isOnline ? 'text-green-600' : 'text-red-600'} dark:text-gray-300`}>
+                {syncStatus === 'syncing' ? 'Sincronizzazione...' : networkMode === 'client' ? (isOnline ? 'Connesso' : 'Disconnesso') : 'Master'}
+              </span>
+            </div>
+          )}
+          
           {typeof toggleDarkMode === 'function' && (
             <button
               onClick={toggleDarkMode}

@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from './useLocalStorage';
-import useRealtimeSync from './useRealtimeSync';
 
-// Hook per la gestione dei dati con supporto di rete
+// Hook per la gestione dei dati con supporto PC master
 const useNetworkStorage = (collectionName, networkPrefs = null) => {
   const localStorageHook = useLocalStorage(collectionName);
   const [internalNetworkPrefs, setInternalNetworkPrefs] = useState(() => {
     const saved = localStorage.getItem('networkPrefs');
     return saved ? JSON.parse(saved) : {
-      mode: 'standalone',
-      serverAddress: '',
-      serverPort: '3001',
-      masterPort: '3001',
+      mode: 'standalone', // 'standalone', 'master', 'client'
+      masterPath: '', // Percorso di rete al PC master
       connectionStatus: 'disconnected',
       lastSync: null,
       autoSync: true,
@@ -26,9 +23,6 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'error'
   const [data, setData] = useState(localStorageHook.data);
   
-  // Hook per la sincronizzazione in tempo reale
-  const realtimeSync = useRealtimeSync(collectionName, currentNetworkPrefs);
-
   // Monitora lo stato della connessione internet
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -43,53 +37,30 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
     };
   }, []);
   
-  // Listener per aggiornamenti in tempo reale
-  useEffect(() => {
-    const handleDataSynced = (event) => {
-      if (event.detail.collection === collectionName) {
-        setData(event.detail.data);
-        setInternalNetworkPrefs(prev => ({ 
-          ...prev, 
-          lastSync: event.detail.timestamp,
-          connectionStatus: 'connected'
-        }));
-      }
-    };
-    
-    const handleDataUpdated = (event) => {
-      if (event.detail.collection === collectionName) {
-        setData(event.detail.data);
-        setInternalNetworkPrefs(prev => ({ 
-          ...prev, 
-          lastSync: event.detail.timestamp,
-          connectionStatus: 'connected'
-        }));
-      }
-    };
-    
-    window.addEventListener('data-synced', handleDataSynced);
-    window.addEventListener('data-updated', handleDataUpdated);
-    
-    return () => {
-      window.removeEventListener('data-synced', handleDataSynced);
-      window.removeEventListener('data-updated', handleDataUpdated);
-    };
-  }, [collectionName]);
-  
   // Sincronizza i dati locali con quelli del localStorage hook
   useEffect(() => {
     setData(localStorageHook.data);
   }, [localStorageHook.data]);
 
-  // Funzione per testare la connessione al server
+  // Auto-sync per modalità client
+  useEffect(() => {
+    if (currentNetworkPrefs.autoSync && currentNetworkPrefs.mode === 'client' && isOnline) {
+      const interval = setInterval(() => {
+        syncWithMaster();
+      }, currentNetworkPrefs.syncInterval);
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentNetworkPrefs, isOnline]);
+
+  // Funzione per testare la connessione al PC master
   const testConnection = useCallback(async () => {
-    if (currentNetworkPrefs.mode !== 'client') return;
+    if (currentNetworkPrefs.mode !== 'client' || !currentNetworkPrefs.masterPath) return false;
     
     setSyncStatus('testing');
     try {
-      const result = await window.electronAPI.network.testConnection(
-        currentNetworkPrefs.serverAddress,
-      currentNetworkPrefs.serverPort
+      const result = await window.electronAPI.network.testMasterConnection(
+        currentNetworkPrefs.masterPath
       );
       
       if (result.success) {
@@ -97,7 +68,7 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
         setSyncStatus('idle');
         return true;
       } else {
-        throw new Error(result.error || 'Server non raggiungibile');
+        throw new Error(result.error || 'PC Master non raggiungibile');
       }
     } catch (error) {
       console.error('Errore test connessione:', error);
@@ -105,164 +76,159 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
       setSyncStatus('error');
       return false;
     }
-  }, [currentNetworkPrefs]);
+  }, [currentNetworkPrefs.masterPath, currentNetworkPrefs.mode]);
 
-  // Funzione per sincronizzare i dati con il server
-  const syncWithServer = useCallback(async () => {
-    if (currentNetworkPrefs.mode !== 'client' || !isOnline) return;
+  // Funzione per sincronizzare con il PC master
+  const syncWithMaster = useCallback(async () => {
+    if (currentNetworkPrefs.mode !== 'client' || !currentNetworkPrefs.masterPath) return;
     
     setSyncStatus('syncing');
     try {
-      // Sincronizza ogni collezione
-      const collections = ['customers', 'projects', 'materials', 'invoices'];
+      const result = await window.electronAPI.network.syncWithMaster(
+        collectionName,
+        currentNetworkPrefs.masterPath
+      );
       
-      for (const collection of collections) {
-        const result = await window.electronAPI.network.syncData(
-          collection,
-          currentNetworkPrefs.serverAddress,
-      currentNetworkPrefs.serverPort
-        );
-        
-        if (result.success) {
-          // Aggiorna i dati locali con quelli del server
-          localStorage.setItem(collection, JSON.stringify(result.data));
-        } else {
-          throw new Error(result.error || `Errore sincronizzazione ${collection}`);
+      if (result.success) {
+        // Aggiorna i dati locali con quelli del master
+        if (result.data) {
+          setData(result.data);
+          // Salva anche nel localStorage locale
+          localStorage.setItem(collectionName, JSON.stringify(result.data));
         }
+        
+        setInternalNetworkPrefs(prev => ({
+          ...prev,
+          lastSync: new Date().toISOString(),
+          connectionStatus: 'connected'
+        }));
+        setSyncStatus('idle');
+        
+        return result;
+      } else {
+        throw new Error(result.error || 'Errore durante la sincronizzazione');
       }
-      
-      setInternalNetworkPrefs(prev => ({ 
-        ...prev, 
-        lastSync: new Date().toISOString(),
-        connectionStatus: 'connected'
-      }));
-      setSyncStatus('idle');
-      return true;
     } catch (error) {
       console.error('Errore sincronizzazione:', error);
       setInternalNetworkPrefs(prev => ({ ...prev, connectionStatus: 'disconnected' }));
       setSyncStatus('error');
-      return false;
+      throw error;
     }
-  }, [currentNetworkPrefs, isOnline]);
+  }, [collectionName, currentNetworkPrefs.masterPath, currentNetworkPrefs.mode]);
 
-  // Sincronizzazione automatica
-  useEffect(() => {
-    if (currentNetworkPrefs.autoSync && currentNetworkPrefs.mode === 'client' && isOnline) {
-      const interval = setInterval(() => {
-        syncWithServer();
-      }, currentNetworkPrefs.syncInterval);
-      
-      return () => clearInterval(interval);
-    }
-  }, [currentNetworkPrefs, isOnline, syncWithServer]);
-
-  // Override delle funzioni CRUD per supportare la sincronizzazione
+  // Funzioni CRUD che gestiscono la sincronizzazione
   const addItem = async (item) => {
     try {
-      // Se siamo connessi in tempo reale, invia direttamente al server
-      if (currentNetworkPrefs.mode === 'client' && realtimeSync.isConnected) {
-        const result = await realtimeSync.sendOperation('add', item);
-        return result.item;
-      } else {
-        // Altrimenti aggiungi localmente
-        const newItem = await localStorageHook.addItem(item);
-        
-        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
-        if (currentNetworkPrefs.mode === 'client' && isOnline) {
-          await syncWithServer();
+      // Aggiungi localmente prima
+      const result = await localStorageHook.addItem(item);
+      
+      // Se siamo in modalità client, sincronizza con il master
+      if (currentNetworkPrefs.mode === 'client' && currentNetworkPrefs.masterPath && isOnline) {
+        try {
+          const syncResult = await window.electronAPI.network.pushToMaster(
+            collectionName,
+            'add',
+            item,
+            currentNetworkPrefs.masterPath
+          );
+          
+          if (syncResult.success) {
+            console.log('Dati sincronizzati con il master');
+          }
+        } catch (error) {
+          console.warn('Impossibile sincronizzare con il master:', error);
+          // Continua comunque con l'operazione locale
         }
-        
-        return newItem;
       }
+      
+      return result;
     } catch (error) {
-      // Fallback: aggiungi localmente se l'operazione remota fallisce
-      console.warn('Operazione remota fallita, salvataggio locale:', error);
-      return await localStorageHook.addItem(item);
+      console.error('Errore durante l\'aggiunta dell\'elemento:', error);
+      throw error;
     }
   };
 
   const updateItem = async (id, updates) => {
     try {
-      // Se siamo connessi in tempo reale, invia direttamente al server
-      if (currentNetworkPrefs.mode === 'client' && realtimeSync.isConnected) {
-        const result = await realtimeSync.sendOperation('update', updates, id);
-        return result.item;
-      } else {
-        // Altrimenti aggiorna localmente
-        await localStorageHook.updateItem(id, updates);
-        
-        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
-        if (currentNetworkPrefs.mode === 'client' && isOnline) {
-          await syncWithServer();
+      // Aggiorna localmente prima
+      const result = await localStorageHook.updateItem(id, updates);
+      
+      // Se siamo in modalità client, sincronizza con il master
+      if (currentNetworkPrefs.mode === 'client' && currentNetworkPrefs.masterPath && isOnline) {
+        try {
+          const syncResult = await window.electronAPI.network.pushToMaster(
+            collectionName,
+            'update',
+            { id, updates },
+            currentNetworkPrefs.masterPath
+          );
+          
+          if (syncResult.success) {
+            console.log('Aggiornamento sincronizzato con il master');
+          }
+        } catch (error) {
+          console.warn('Impossibile sincronizzare aggiornamento con il master:', error);
         }
       }
+      
+      return result;
     } catch (error) {
-      // Fallback: aggiorna localmente se l'operazione remota fallisce
-      console.warn('Operazione remota fallita, aggiornamento locale:', error);
-      await localStorageHook.updateItem(id, updates);
+      console.error('Errore durante l\'aggiornamento dell\'elemento:', error);
+      throw error;
     }
   };
 
   const deleteItem = async (id) => {
     try {
-      // Se siamo connessi in tempo reale, invia direttamente al server
-      if (currentNetworkPrefs.mode === 'client' && realtimeSync.isConnected) {
-        await realtimeSync.sendOperation('delete', null, id);
-      } else {
-        // Altrimenti elimina localmente
-        await localStorageHook.deleteItem(id);
-        
-        // Se siamo in modalità client ma non connessi in tempo reale, prova la sincronizzazione tradizionale
-        if (currentNetworkPrefs.mode === 'client' && isOnline) {
-          await syncWithServer();
+      // Elimina localmente prima
+      const result = await localStorageHook.deleteItem(id);
+      
+      // Se siamo in modalità client, sincronizza con il master
+      if (currentNetworkPrefs.mode === 'client' && currentNetworkPrefs.masterPath && isOnline) {
+        try {
+          const syncResult = await window.electronAPI.network.pushToMaster(
+            collectionName,
+            'delete',
+            { id },
+            currentNetworkPrefs.masterPath
+          );
+          
+          if (syncResult.success) {
+            console.log('Eliminazione sincronizzata con il master');
+          }
+        } catch (error) {
+          console.warn('Impossibile sincronizzare eliminazione con il master:', error);
         }
       }
+      
+      return result;
     } catch (error) {
-      // Fallback: elimina localmente se l'operazione remota fallisce
-      console.warn('Operazione remota fallita, eliminazione locale:', error);
-      await localStorageHook.deleteItem(id);
+      console.error('Errore durante l\'eliminazione dell\'elemento:', error);
+      throw error;
     }
   };
 
-  // Funzione per inviare dati al server (per modalità client)
-  const sendToServer = async (collection, action, data) => {
-    if (currentNetworkPrefs.mode !== 'client' || !isOnline) return;
-    
-    try {
-      // Per ora utilizziamo la sincronizzazione completa
-      // In futuro si può implementare l'invio di singole operazioni
-      await syncWithServer();
-      return true;
-    } catch (error) {
-      console.error('Errore invio al server:', error);
-      return false;
-    }
-  };
+  // Aggiorna le preferenze di rete
+  const updateNetworkPrefs = useCallback((newPrefs) => {
+    const updatedPrefs = { ...currentNetworkPrefs, ...newPrefs };
+    setInternalNetworkPrefs(updatedPrefs);
+    localStorage.setItem('networkPrefs', JSON.stringify(updatedPrefs));
+  }, [currentNetworkPrefs]);
 
   return {
-    // Dati e funzioni CRUD
     data,
+    loading: localStorageHook.loading,
+    error: localStorageHook.error,
     addItem,
     updateItem,
     deleteItem,
-    // Funzioni specifiche per la rete
+    updateNetworkPrefs,
     networkPrefs: currentNetworkPrefs,
-    isOnline,
     syncStatus,
     testConnection,
-    syncWithServer,
-    sendToServer,
-    // Funzioni di sincronizzazione in tempo reale
-    isRealtimeConnected: realtimeSync.isConnected,
-    realtimeSyncStatus: realtimeSync.syncStatus,
-    lastSync: realtimeSync.lastSync || currentNetworkPrefs.lastSync,
-    requestFullSync: realtimeSync.requestFullSync,
-    // Funzioni di compatibilità
-    setData: (newData) => {
-      // Manteniamo la compatibilità ma non è più necessario
-      console.warn('setData è deprecato, i dati vengono gestiti automaticamente');
-    }
+    syncWithMaster,
+    isOnline,
+    lastSync: currentNetworkPrefs.lastSync,
   };
 };
 

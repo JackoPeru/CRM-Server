@@ -84,8 +84,8 @@ const App = () => {
     const savedNetworkPrefs = localStorage.getItem('networkPrefs');
     return savedNetworkPrefs ? JSON.parse(savedNetworkPrefs) : {
       mode: 'standalone', // 'standalone', 'master', 'client'
-      serverAddress: '',
-      serverPort: '3001',
+      masterPath: '', // Percorso cartella condivisa PC master (per client)
+      sharedPath: '', // Percorso cartella locale da condividere (per master)
       masterPort: '3001',
       connectionStatus: 'disconnected', // 'connected', 'disconnected'
       lastSync: null,
@@ -99,6 +99,8 @@ const App = () => {
     addItem: addMaterial,
     updateItem: updateMaterial,
     deleteItem: deleteMaterial,
+    syncStatus: materialsSyncStatus,
+    isOnline: materialsOnline,
   } = useNetworkStorage('materials', networkPrefs);
   
   const {
@@ -123,18 +125,11 @@ const App = () => {
   } = useNetworkStorage('invoices', networkPrefs);
   
   // Setter functions per compatibilità con i componenti esistenti
-  const setMaterials = (newMaterials) => {
-    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
-  };
-  const setCustomers = (newCustomers) => {
-    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
-  };
-  const setProjects = (newProjects) => {
-    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
-  };
-  const setInvoices = (newInvoices) => {
-    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
-  };
+  // Queste funzioni ora sono vuote perché useNetworkStorage gestisce automaticamente lo stato
+  const setMaterials = () => {};
+  const setCustomers = () => {};
+  const setProjects = () => {};
+  const setInvoices = () => {};
   // Aggiungo uno stato per i filtri da applicare alla pagina dei progetti
   const [projectFilters, setProjectFilters] = useState({});
 
@@ -145,9 +140,7 @@ const App = () => {
     deleteItem: deleteQuote,
   } = useNetworkStorage('quotes', networkPrefs);
   
-  const setQuotes = (newQuotes) => {
-    // Non necessario con useNetworkStorage, ma mantenuto per compatibilità
-  };
+  const setQuotes = () => {};
 
   // Le definizioni di invoices, customers, projects e quotes sono ora gestite da useNetworkStorage sopra
 
@@ -337,6 +330,9 @@ const App = () => {
           currentPage={currentPage}
           navItems={navItems}
           onOpenSidebar={() => setIsSidebarOpen(true)}
+          syncStatus={materialsSyncStatus}
+          isOnline={materialsOnline}
+          networkMode={networkPrefs.mode}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 text-light-text dark:text-dark-text">
