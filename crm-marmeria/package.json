@@ -37,7 +37,7 @@
     "appId": "com.crmmarmeria.app",
     "productName": "CRM Marmeria",
     "directories": {
-      "buildResources": "temp-build",
+      "buildResources": "temp-build-new",
       "output": "dist-electron"
     },
     "files": [
@@ -46,7 +46,7 @@
     ],
     "extraResources": [
       {
-        "from": "temp-build",
+        "from": "temp-build-new",
         "to": "app",
         "filter": ["**/*"]
       }

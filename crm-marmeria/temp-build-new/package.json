@@ -17,7 +17,6 @@
     "build:linux": "cross-env ELECTRON_BUILD=true vite build && electron-builder --linux"
   },
     "dependencies": {
-        "express": "^4.18.2",
         "lucide-react": "^0.322.0",
         "react": "^18.3.0",
         "react-dom": "^18.3.0",
@@ -38,11 +37,19 @@
     "appId": "com.crmmarmeria.app",
     "productName": "CRM Marmeria",
     "directories": {
+      "buildResources": "temp-build",
       "output": "dist-electron"
     },
     "files": [
-      "dist/**/*",
+      "temp-build/**/*",
       "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "temp-build",
+        "to": "app",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "portable"
