@@ -35,6 +35,7 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
 
 import { Database } from 'lucide-react'; // Importa l'icona per le preferenze dati
 import { useState, useEffect } from 'react';
+import DataManager from '../components/DataManager';
 
 const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotificationPref, dataPrefs, updateDataPref, formattingPrefs, updateFormattingPref, fiscalPrefs, updateFiscalPref, printPrefs, updatePrintPref, networkPrefs, updateNetworkPref }) => {
   const [serverStatus, setServerStatus] = useState({ isRunning: false, port: null });
@@ -444,6 +445,9 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
           </div>
         </div>
       </div>
+
+      {/* Sezione Gestione Dati */}
+      <DataManager />
 
       {/* Sezione Preferenze Dati */}
       <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">

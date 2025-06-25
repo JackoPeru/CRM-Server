@@ -32,11 +32,11 @@ Section "install"
     
     ; Crea collegamenti nel menu Start
     CreateDirectory "$SMPROGRAMS\${COMPANYNAME}"
-    CreateShortcut "$SMPROGRAMS\${COMPANYNAME}\${APPNAME}.lnk" "$INSTDIR\CRM-Marmeria.exe" "" "$INSTDIR\resources\app.asar.unpacked\assets\icon.ico"
+    CreateShortcut "$SMPROGRAMS\${COMPANYNAME}\${APPNAME}.lnk" "$INSTDIR\CRM-Marmeria.exe" "" "$INSTDIR\resources\app\electron\icon.ico"
     CreateShortcut "$SMPROGRAMS\${COMPANYNAME}\Disinstalla ${APPNAME}.lnk" "$INSTDIR\uninstall.exe"
     
     ; Crea collegamento sul desktop
-    CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\CRM-Marmeria.exe" "" "$INSTDIR\resources\app.asar.unpacked\assets\icon.ico"
+    CreateShortcut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\CRM-Marmeria.exe" "" "$INSTDIR\resources\app\electron\icon.ico"
     
     ; Scrivi informazioni nel registro per il pannello di controllo
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANYNAME} ${APPNAME}" "DisplayName" "${APPNAME}"
