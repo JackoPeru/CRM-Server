@@ -190,8 +190,8 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
                   <input type="text" name="name" id="name" value={newCustomer.name} onChange={handleInputChange} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email *</label>
-                  <input type="email" name="email" id="email" value={newCustomer.email} onChange={handleInputChange} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
+                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
+                  <input type="email" name="email" id="email" value={newCustomer.email} onChange={handleInputChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium mb-1">Telefono</label>
@@ -286,8 +286,8 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
                   <input type="text" name="name" id="edit-name" value={currentCustomer.name} onChange={(e) => setCurrentCustomer({...currentCustomer, name: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div>
-                  <label htmlFor="edit-email" className="block text-sm font-medium mb-1">Email *</label>
-                  <input type="email" name="email" id="edit-email" value={currentCustomer.email} onChange={(e) => setCurrentCustomer({...currentCustomer, email: e.target.value})} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
+                  <label htmlFor="edit-email" className="block text-sm font-medium mb-1">Email</label>
+                  <input type="email" name="email" id="edit-email" value={currentCustomer.email} onChange={(e) => setCurrentCustomer({ ...currentCustomer, email: e.target.value })} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" />
                 </div>
                 <div>
                   <label htmlFor="edit-phone" className="block text-sm font-medium mb-1">Telefono</label>
