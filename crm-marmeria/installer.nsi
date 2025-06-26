@@ -3,9 +3,9 @@
 
 !define APPNAME "CRM Marmeria"
 !define COMPANYNAME "Marmeria Solutions"
-!define DESCRIPTION "Sistema CRM per gestione marmeria con sincronizzazione dati"
+!define DESCRIPTION "Sistema CRM per gestione marmeria con sincronizzazione dati e gestione backup"
 !define VERSIONMAJOR 1
-!define VERSIONMINOR 2
+!define VERSIONMINOR 3
 !define VERSIONBUILD 0
 !define HELPURL "https://github.com/yourusername/crm-marmeria"
 !define UPDATEURL "https://github.com/yourusername/crm-marmeria/releases"
@@ -28,7 +28,7 @@ Section "install"
     SetOutPath $INSTDIR
     
     ; Copia tutti i file dell'applicazione
-    File /r "..\build\CRM-Marmeria-win32-x64\*"
+    File /r "dist-electron\win-unpacked\*"
     
     ; Crea collegamenti nel menu Start
     CreateDirectory "$SMPROGRAMS\${COMPANYNAME}"
