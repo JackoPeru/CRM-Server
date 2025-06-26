@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const express = require('express');
+const Discovery = require('./discovery.cjs');
+const axios = require('axios');
 
 class DataSharingServer {
   constructor() {
@@ -10,6 +12,8 @@ class DataSharingServer {
     this.port = 3001;
     this.isRunning = false;
     this.sharedDataPath = null; // Percorso della cartella condivisa
+    this.discovery = null; // Istanza del servizio di discovery
+    this.lastSyncTimestamp = {}; // Timestamp dell'ultima sincronizzazione per collezione
     
     this.setupMiddleware();
     this.setupRoutes();
@@ -33,6 +37,30 @@ class DataSharingServer {
   }
 
   setupRoutes() {
+    // Route per la sincronizzazione con un peer specifico
+    this.app.post('/api/sync/peer', async (req, res) => {
+      try {
+        const { peerData, collection } = req.body;
+        const currentData = this.getSharedData(collection);
+        
+        // Unisci i dati locali con quelli del peer, mantenendo le versioni più recenti
+        const mergedData = this.mergeData(currentData, peerData);
+        
+        // Salva i dati uniti
+        this.saveSharedData(collection, mergedData);
+        
+        res.json({ success: true, message: 'Dati sincronizzati con successo' });
+      } catch (error) {
+        console.error('Errore durante la sincronizzazione con il peer:', error);
+        res.status(500).json({ error: 'Errore durante la sincronizzazione' });
+      }
+    });
+
+    // Route per ottenere i timestamp di sincronizzazione
+    this.app.get('/api/sync/timestamps', (req, res) => {
+      res.json(this.lastSyncTimestamp);
+    });
+
     // Route per verificare lo stato del server
     this.app.get('/api/health', (req, res) => {
       res.json({ 
@@ -183,6 +211,48 @@ class DataSharingServer {
     }
   }
 
+  async syncWithPeers(collection, localData) {
+    if (!this.discovery) return;
+    
+    const peers = this.discovery.getPeers();
+    for (const peer of peers) {
+      try {
+        const [host, port] = peer.split(':');
+        const peerUrl = `http://${host}:${port}/api/sync/peer`;
+        
+        // Invia i dati locali al peer
+        await axios.post(peerUrl, {
+          collection,
+          peerData: localData
+        });
+        
+        console.log(`Sincronizzazione con ${peer} completata`);
+      } catch (error) {
+        console.error(`Errore sincronizzazione con ${peer}:`, error);
+      }
+    }
+  }
+
+  mergeData(localData, peerData) {
+    const mergedMap = new Map();
+    
+    // Indicizza i dati locali per ID
+    localData.forEach(item => {
+      mergedMap.set(item.id, item);
+    });
+    
+    // Unisci o aggiorna con i dati del peer
+    peerData.forEach(peerItem => {
+      const localItem = mergedMap.get(peerItem.id);
+      
+      if (!localItem || new Date(peerItem.updatedAt) > new Date(localItem.updatedAt)) {
+        mergedMap.set(peerItem.id, peerItem);
+      }
+    });
+    
+    return Array.from(mergedMap.values());
+  }
+
   saveSharedData(collection, data) {
     try {
       const dataPath = this.getDataPath(collection);
@@ -195,6 +265,12 @@ class DataSharingServer {
       
       fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
       console.log(`✅ Dati ${collection} salvati in:`, dataPath);
+      
+      // Aggiorna il timestamp di sincronizzazione
+      this.lastSyncTimestamp[collection] = new Date().toISOString();
+      
+      // Sincronizza con i peer
+      this.syncWithPeers(collection, data);
     } catch (error) {
       console.error(`Errore salvataggio dati ${collection}:`, error);
       throw error;
@@ -234,6 +310,11 @@ class DataSharingServer {
           this.isRunning = true;
           console.log(`🚀 Server Master avviato su porta ${this.port}`);
           console.log(`📁 Dati condivisi in: ${this.sharedDataPath || 'cartella locale'}`);
+          
+          // Inizializza il servizio di discovery
+          this.discovery = new Discovery(this.port);
+          console.log('✅ Servizio di discovery avviato');
+
           resolve({
             success: true,
             port: this.port,
