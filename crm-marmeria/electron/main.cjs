@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const DataSharingServer = require('./server.cjs');
 const isDev = process.env.NODE_ENV === 'development';
