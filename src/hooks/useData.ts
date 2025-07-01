@@ -3,6 +3,7 @@ import { useOrders } from './useOrders';
 import { useMaterials } from './useMaterials';
 import { useAuth } from './useAuth';
 import { useAnalytics } from './useAnalytics';
+import type { Order } from '../store/slices/ordersSlice';
 
 /**
  * Hook unificato per accedere a tutti i dati dell'applicazione
@@ -42,17 +43,17 @@ export const useData = () => {
     updateMaterial: materials.updateMaterial,
     deleteMaterial: materials.removeMaterial,
     
-    // Preventivi (subset di ordini con status 'Preventivo')
+    // Preventivi (ordini con status 'Preventivo')
     quotes: orders.orders.filter(order => order.status === 'Preventivo'),
     quotesLoading: orders.loading,
-    addQuote: (quoteData: any) => orders.addOrder({ ...quoteData, status: 'Preventivo' }),
+    addQuote: (quoteData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => orders.addOrder({ ...quoteData, status: 'Preventivo' }),
     updateQuote: orders.updateOrder,
     deleteQuote: orders.removeOrder,
     
-    // Fatture (subset di ordini completati - potrebbero essere fatturati)
+    // Fatture (ordini completati)
     invoices: orders.orders.filter(order => order.status === 'Completato'),
     invoicesLoading: orders.loading,
-    addInvoice: (invoiceData: any) => orders.addOrder({ ...invoiceData, status: 'Completato' }),
+    addInvoice: (invoiceData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => orders.addOrder({ ...invoiceData, status: 'Completato' }),
     updateInvoice: orders.updateOrder,
     deleteInvoice: orders.removeOrder,
     

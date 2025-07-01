@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllMaterials, selectMaterialsLoading, selectMaterialsError, selectMaterialsPagination, selectMaterialsFilters, selectMaterialsStats, selectMaterialCategories, selectMaterialSuppliers } from '../store';
 import {
   fetchMaterials,
@@ -30,7 +30,13 @@ export const useMaterials = () => {
   const categories = useAppSelector(selectMaterialCategories);
   const suppliers = useAppSelector(selectMaterialSuppliers);
 
-
+  // Carica i materiali all'avvio
+  useEffect(() => {
+    dispatch(fetchMaterials());
+    dispatch(fetchMaterialsStats());
+    dispatch(fetchMaterialCategories());
+    dispatch(fetchMaterialSuppliers());
+  }, [dispatch]);
 
   /**
    * Ricarica i materiali con i filtri correnti

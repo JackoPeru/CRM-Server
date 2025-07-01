@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllOrders, selectOrdersLoading, selectOrdersError, selectOrdersPagination, selectOrdersFilters, selectOrdersStats, selectVoiceBotOrderStatus } from '../store';
 import {
   fetchOrders,
@@ -28,7 +28,11 @@ export const useOrders = () => {
   const stats = useAppSelector(selectOrdersStats);
   const voiceBotOrderStatus = useAppSelector(selectVoiceBotOrderStatus);
 
-
+  // Carica gli ordini all'avvio
+  useEffect(() => {
+    dispatch(fetchOrders());
+    dispatch(fetchOrdersStats());
+  }, [dispatch]);
 
   /**
    * Ricarica gli ordini con i filtri correnti

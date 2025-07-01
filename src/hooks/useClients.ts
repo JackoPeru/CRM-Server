@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllClients, selectClientsLoading, selectClientsError, selectClientsPagination, selectClientsFilters, selectClientsStats } from '../store';
 import {
   fetchClients,
@@ -26,7 +26,11 @@ export const useClients = () => {
   const filters = useAppSelector(selectClientsFilters);
   const stats = useAppSelector(selectClientsStats);
 
-
+  // Carica i clienti all'avvio
+  useEffect(() => {
+    dispatch(fetchClients());
+    dispatch(fetchClientsStats());
+  }, [dispatch]);
 
   /**
    * Ricarica i clienti con i filtri correnti
