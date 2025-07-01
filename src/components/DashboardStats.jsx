@@ -1,17 +1,15 @@
 import React from 'react';
 import { Users, Briefcase, Layers, DollarSign, TrendingUp } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import useUI from '../hooks/useUI';
 
 const StatCard = ({ title, value, icon: Icon, bgColor, textColor, targetPage, filters }) => {
-  const navigate = useNavigate();
-  const { setTableFilter } = useUI();
+  const { updatePreferences } = useUI();
 
   const handleClick = () => {
     if (filters) {
-      setTableFilter('projects', filters);
+      // TODO: Implementare filtri se necessario
     }
-    navigate(`/${targetPage}`);
+    updatePreferences({ currentPage: targetPage });
   };
 
   return (

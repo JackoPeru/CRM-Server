@@ -7,9 +7,9 @@ import { Material } from '../store/slices/materialsSlice';
 const MaterialsPage: React.FC = () => {
   const { 
     isModalOpen, 
-    openModal, 
+    showModal, 
     hideModal, 
-    updateBreadcrumbs 
+    setBreadcrumbs 
   } = useUI();
   
   const { 
@@ -20,8 +20,8 @@ const MaterialsPage: React.FC = () => {
   } = useData();
 
   useEffect(() => {
-    updateBreadcrumbs([{ label: 'Materiali' }]);
-  }, [updateBreadcrumbs]);
+    setBreadcrumbs([{ label: 'Materiali' }]);
+  }, [setBreadcrumbs]);
 
   const [newMaterial, setNewMaterial] = useState({
     name: '',
@@ -42,7 +42,7 @@ const MaterialsPage: React.FC = () => {
     setNewMaterial(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddMaterial = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitMaterial = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const materialData = {
       ...newMaterial,
@@ -58,7 +58,7 @@ const MaterialsPage: React.FC = () => {
 
   const handleEditMaterial = (material: Material) => {
     setCurrentMaterial(material);
-    openModal({ id: 'editMaterial', type: 'edit' });
+    showModal({ id: 'editMaterial', type: 'edit' });
   };
 
   const handleUpdateMaterial = (e: React.FormEvent<HTMLFormElement>) => {
@@ -71,10 +71,10 @@ const MaterialsPage: React.FC = () => {
 
   const openConfirmDeleteModal = (materialId: string) => {
     setMaterialToDelete(materialId);
-    openModal({ id: 'deleteMaterial', type: 'confirm' });
+    showModal({ id: 'deleteMaterial', type: 'delete' });
   };
 
-  const handleDeleteMaterial = () => {
+  const confirmDeleteMaterial = () => {
     if (materialToDelete) {
       deleteMaterial(materialToDelete);
       setMaterialToDelete(null);
@@ -84,7 +84,7 @@ const MaterialsPage: React.FC = () => {
 
   const handleViewMaterial = (material: Material) => {
     setMaterialToView(material);
-    openModal({ id: 'viewMaterial', type: 'view' });
+    showModal({ id: 'viewMaterial', type: 'view' });
   };
 
   const filteredMaterials = materials.filter(material =>
@@ -98,7 +98,7 @@ const MaterialsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Materiali</h1>
         <button 
-          onClick={() => openModal({ id: 'addMaterial', type: 'add' })}
+          onClick={() => showModal({ id: 'addMaterial', type: 'add' })}
           className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -135,11 +135,11 @@ const MaterialsPage: React.FC = () => {
             <tbody className="divide-y divide-light-border dark:divide-dark-border">
               {filteredMaterials.length > 0 ? filteredMaterials.map((material) => (
                 <tr key={material.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap font-medium">{material.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{material.category}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{material.unit}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">€ {material.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{material.supplier || 'N/D'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-light-text dark:text-dark-text">{material.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.unit}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">€ {material.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.supplier || 'N/D'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => handleViewMaterial(material)} className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded">
@@ -156,7 +156,7 @@ const MaterialsPage: React.FC = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-dark-text-light">
                     Nessun materiale trovato. {searchTerm && 'Modifica i filtri o il termine di ricerca.'}
                   </td>
                 </tr>
@@ -170,15 +170,15 @@ const MaterialsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg my-8">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Nuovo Materiale</h2>
+              <h2 className="text-xl font-semibold dark:text-dark-text">Nuovo Materiale</h2>
               <button onClick={() => hideModal('addMaterial')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <form onSubmit={handleAddMaterial}>
+            <form onSubmit={handleSubmitMaterial}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
-                  <label htmlFor="material-name" className="block text-sm font-medium mb-1">Nome Materiale *</label>
+                  <label htmlFor="material-name" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Nome Materiale *</label>
                   <input 
                     type="text" 
                     name="name" 
@@ -190,7 +190,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label htmlFor="material-description" className="block text-sm font-medium mb-1">Descrizione</label>
+                  <label htmlFor="material-description" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Descrizione</label>
                   <textarea 
                     name="description" 
                     id="material-description" 
@@ -201,7 +201,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="material-unit" className="block text-sm font-medium mb-1">Unità di Misura *</label>
+                  <label htmlFor="material-unit" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Unità di Misura *</label>
                   <input 
                     type="text" 
                     name="unit" 
@@ -214,7 +214,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="material-price" className="block text-sm font-medium mb-1">Prezzo Unitario (€) *</label>
+                  <label htmlFor="material-price" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Prezzo Unitario (€) *</label>
                   <input 
                     type="number" 
                     name="unitPrice" 
@@ -227,7 +227,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="material-category" className="block text-sm font-medium mb-1">Categoria *</label>
+                  <label htmlFor="material-category" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Categoria *</label>
                   <input 
                     type="text" 
                     name="category" 
@@ -239,7 +239,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="material-supplier" className="block text-sm font-medium mb-1">Fornitore</label>
+                  <label htmlFor="material-supplier" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Fornitore</label>
                   <input 
                     type="text" 
                     name="supplier" 
@@ -251,7 +251,7 @@ const MaterialsPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => hideModal('addMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => hideModal('addMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Aggiungi Materiale</button>
               </div>
             </form>
@@ -263,7 +263,7 @@ const MaterialsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg my-8">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Modifica Materiale</h2>
+              <h2 className="text-xl font-semibold dark:text-dark-text">Modifica Materiale</h2>
               <button onClick={() => hideModal('editMaterial')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
@@ -271,7 +271,7 @@ const MaterialsPage: React.FC = () => {
             <form onSubmit={handleUpdateMaterial}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
-                  <label htmlFor="edit-material-name" className="block text-sm font-medium mb-1">Nome Materiale *</label>
+                  <label htmlFor="edit-material-name" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Nome Materiale *</label>
                   <input 
                     type="text" 
                     name="name" 
@@ -283,7 +283,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label htmlFor="edit-material-description" className="block text-sm font-medium mb-1">Descrizione</label>
+                  <label htmlFor="edit-material-description" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Descrizione</label>
                   <textarea 
                     name="description" 
                     id="edit-material-description" 
@@ -294,7 +294,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-material-unit" className="block text-sm font-medium mb-1">Unità di Misura *</label>
+                  <label htmlFor="edit-material-unit" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Unità di Misura *</label>
                   <input 
                     type="text" 
                     name="unit" 
@@ -306,7 +306,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-material-price" className="block text-sm font-medium mb-1">Prezzo Unitario (€) *</label>
+                  <label htmlFor="edit-material-price" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Prezzo Unitario (€) *</label>
                   <input 
                     type="number" 
                     name="unitPrice" 
@@ -319,7 +319,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-material-category" className="block text-sm font-medium mb-1">Categoria *</label>
+                  <label htmlFor="edit-material-category" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Categoria *</label>
                   <input 
                     type="text" 
                     name="category" 
@@ -331,7 +331,7 @@ const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-material-supplier" className="block text-sm font-medium mb-1">Fornitore</label>
+                  <label htmlFor="edit-material-supplier" className="block text-sm font-medium mb-1 dark:text-dark-text-medium">Fornitore</label>
                   <input 
                     type="text" 
                     name="supplier" 
@@ -343,7 +343,7 @@ const MaterialsPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => hideModal('editMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => hideModal('editMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Salva Modifiche</button>
               </div>
             </form>
@@ -355,23 +355,23 @@ const MaterialsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg my-8">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Dettagli Materiale</h2>
+              <h2 className="text-xl font-semibold dark:text-dark-text">Dettagli Materiale</h2>
               <button onClick={() => hideModal('viewMaterial')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="space-y-2 text-light-text dark:text-dark-text">
-              <p><strong>Nome:</strong> {materialToView.name}</p>
-              <p><strong>Descrizione:</strong> {materialToView.description || 'N/D'}</p>
-              <p><strong>Categoria:</strong> {materialToView.category}</p>
-              <p><strong>Unità di Misura:</strong> {materialToView.unit}</p>
-              <p><strong>Prezzo Unitario:</strong> € {materialToView.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              <p><strong>Fornitore:</strong> {materialToView.supplier || 'N/D'}</p>
-              <p><strong>Quantità in Stock:</strong> {materialToView.stockQuantity}</p>
-              <p><strong>Livello Minimo:</strong> {materialToView.minStockLevel}</p>
+              <p><strong className="dark:text-dark-text">Nome:</strong> {materialToView.name}</p>
+              <p><strong className="dark:text-dark-text">Descrizione:</strong> {materialToView.description || 'N/D'}</p>
+              <p><strong className="dark:text-dark-text">Categoria:</strong> {materialToView.category}</p>
+              <p><strong className="dark:text-dark-text">Unità di Misura:</strong> {materialToView.unit}</p>
+              <p><strong className="dark:text-dark-text">Prezzo Unitario:</strong> € {materialToView.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong className="dark:text-dark-text">Fornitore:</strong> {materialToView.supplier || 'N/D'}</p>
+              <p><strong className="dark:text-dark-text">Quantità in Stock:</strong> {materialToView.stockQuantity}</p>
+              <p><strong className="dark:text-dark-text">Livello Minimo:</strong> {materialToView.minStockLevel}</p>
             </div>
             <div className="mt-6 flex justify-end">
-              <button type="button" onClick={() => hideModal('viewMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Chiudi</button>
+              <button type="button" onClick={() => hideModal('viewMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Chiudi</button>
             </div>
           </div>
         </div>
@@ -380,11 +380,11 @@ const MaterialsPage: React.FC = () => {
       {isModalOpen('deleteMaterial') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-sm">
-            <h2 className="text-xl font-semibold mb-4">Conferma Eliminazione</h2>
-            <p className="mb-6">Sei sicuro di voler eliminare questo materiale? L'azione è irreversibile.</p>
+            <h2 className="text-xl font-semibold mb-4 dark:text-dark-text">Conferma Eliminazione</h2>
+            <p className="mb-6 dark:text-dark-text-light">Sei sicuro di voler eliminare questo materiale? L'azione è irreversibile.</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => hideModal('deleteMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
-              <button onClick={handleDeleteMaterial} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">Elimina</button>
+              <button onClick={() => hideModal('deleteMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
+              <button onClick={confirmDeleteMaterial} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">Elimina</button>
             </div>
           </div>
         </div>

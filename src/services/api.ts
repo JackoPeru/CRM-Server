@@ -26,7 +26,7 @@ class ApiClient {
 
   constructor() {
     // Legge l'URL base dalle variabili d'ambiente
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
     
     this.axiosInstance = axios.create({
       baseURL,
@@ -93,9 +93,19 @@ class ApiClient {
           }
         }
 
-        // Gestione errori di rete
+        // Gestione errori di rete - notifica ridotta per evitare spam
         if (error.code === 'ERR_NETWORK') {
-          toast.error('Sei offline – dati in sola lettura');
+          // Mostra notifica solo se non è già stata mostrata di recente
+          const lastNetworkError = localStorage.getItem('lastNetworkErrorToast');
+          const now = Date.now();
+          
+          if (!lastNetworkError || (now - parseInt(lastNetworkError)) > 30000) { // 30 secondi
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'network-error' // Previene duplicati
+            });
+            localStorage.setItem('lastNetworkErrorToast', now.toString());
+          }
         }
 
         return Promise.reject(error);

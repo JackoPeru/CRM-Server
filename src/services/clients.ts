@@ -55,11 +55,21 @@ class ClientsService {
     } catch (error: any) {
       console.error('Errore nel recupero clienti:', error);
       
-      // Fallback al cache se errore di rete
+      // Fallback al cache per uso offline
       if (error.code === 'ERR_NETWORK') {
-        const cachedClients = await cacheService.get<Client[]>('customers', 'all');
+        const cachedClients = await cacheService.get<Client[]>('clients', 'all');
         if (cachedClients) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedClients;
         }
       }
@@ -83,11 +93,21 @@ class ClientsService {
     } catch (error: any) {
       console.error(`Errore nel recupero cliente ${id}:`, error);
       
-      // Fallback al cache se errore di rete
+      // Fallback al cache
       if (error.code === 'ERR_NETWORK') {
-        const cachedClient = await cacheService.get<Client>('customers', id);
+        const cachedClient = await cacheService.get<Client>('clients', id);
         if (cachedClient) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedClient;
         }
       }

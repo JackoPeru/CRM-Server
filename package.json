@@ -15,6 +15,10 @@
         "build:win": "cross-env ELECTRON_BUILD=true vite build && electron-builder --win",
         "build:mac": "cross-env ELECTRON_BUILD=true vite build && electron-builder --mac",
         "build:linux": "cross-env ELECTRON_BUILD=true vite build && electron-builder --linux",
+        "server": "cd server && npm start",
+        "server:dev": "cd server && npm run dev",
+        "server:install": "cd server && npm install",
+        "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
         "test": "vitest",
         "test:ui": "vitest --ui"
     },
@@ -43,6 +47,7 @@
         "@types/react-dom": "^19.1.6",
         "@vitejs/plugin-react": "^4.5.1",
         "autoprefixer": "^10.4.17",
+        "concurrently": "^8.2.2",
         "cross-env": "^7.0.3",
         "electron": "^28.0.0",
         "electron-builder": "^24.9.1",
