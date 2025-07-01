@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import Icon from '../common/Icon';
 
 const Sidebar = ({
   isSidebarOpen,
