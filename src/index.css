@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Stili aggiuntivi opzionali */
+html, body, #root { height: 100%; }
+
+/* Layout principale */
+.app {
+  @apply flex h-full bg-gray-50;
+}
+
+.app.dark {
+  @apply bg-gray-900;
+}
+
+.main-content {
+  @apply flex-1 flex flex-col overflow-hidden;
+}
+
+.sidebar-open .main-content {
+  @apply ml-64;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar-open .main-content {
+    @apply ml-0;
+  }
+}
