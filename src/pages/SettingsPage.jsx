@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer, Network, Server, Wifi, Database } from 'lucide-react'; // Icone per le sezioni
+import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer, Network, Server, Wifi, WifiOff, Database } from 'lucide-react'; // Icone per le sezioni
 
 // Componente Switch personalizzato con animazione
 const AnimatedSwitch = ({ id, checked, onChange, label }) => {
@@ -35,15 +35,87 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
 
 
 import DataManager from '../components/DataManager';
-import useUI from '../hooks/useUI';
-import { useData } from '../hooks/useData';
+import useUI from '../hooks/useUI.ts';
+import { useData } from '../hooks/useData.ts';
 
 const SettingsPage = () => {
-  const { uiState, setDarkMode, toggleNotification, setNetworkMode, setMasterPath, setSharedPath, setMasterPort, setConnectionStatus, setLastSync, setFormatting, setFiscal, setPrint } = useUI();
+  const { theme, userPreferences, changeTheme, updatePreferences, showNotification } = useUI();
   const { dataState, updateUser } = useData();
 
-  const { darkMode, notificationPrefs, networkPrefs, formattingPrefs, fiscalPrefs, printPrefs } = uiState;
   const { user } = dataState;
+  
+  // Stato locale per le preferenze UI
+  const [uiPrefs, setUiPrefs] = useState({
+    darkMode: theme === 'dark',
+    notificationPrefs: userPreferences.notifications || {},
+    networkPrefs: userPreferences.network || { mode: 'standalone', masterPath: '', sharedPath: '', masterPort: 3001 },
+    formattingPrefs: userPreferences.formatting || { dateFormat: 'DD/MM/YYYY', currencySymbol: '€' },
+    fiscalPrefs: userPreferences.fiscal || { vatNumber: '', taxCode: '', defaultTaxRate: 22 },
+    printPrefs: userPreferences.print || { logoUrl: '', printHeader: true, printFooter: true }
+  });
+  
+  const { darkMode, notificationPrefs, networkPrefs, formattingPrefs, fiscalPrefs, printPrefs } = uiPrefs;
+
+  // Stato locale per le preferenze dati
+  const [dataPrefs, setDataPrefs] = useState({
+    customerCodePrefix: 'CLI-',
+    projectCodePrefix: 'PRJ-'
+  });
+
+  // Funzioni per aggiornare le preferenze
+  const updateDataPref = (key, value) => {
+    setDataPrefs(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateFormattingPref = (key, value) => {
+    const newFormattingPrefs = { ...formattingPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, formattingPrefs: newFormattingPrefs }));
+    updatePreferences({ formatting: newFormattingPrefs });
+  };
+
+  const updateFiscalPref = (key, value) => {
+    const newFiscalPrefs = { ...fiscalPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, fiscalPrefs: newFiscalPrefs }));
+    updatePreferences({ fiscal: newFiscalPrefs });
+  };
+
+  const updatePrintPref = (key, value) => {
+    const newPrintPrefs = { ...printPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, printPrefs: newPrintPrefs }));
+    updatePreferences({ print: newPrintPrefs });
+  };
+
+  // Funzioni mancanti per l'interfaccia
+  const toggleDarkMode = () => {
+    const newTheme = darkMode ? 'light' : 'dark';
+    changeTheme(newTheme);
+    setUiPrefs(prev => ({ ...prev, darkMode: !darkMode }));
+  };
+
+  const updateNetworkPref = (key, value) => {
+    const newNetworkPrefs = { ...networkPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, networkPrefs: newNetworkPrefs }));
+    updatePreferences({ network: newNetworkPrefs });
+  };
+
+  const toggleNotificationPref = (key) => {
+    const newNotificationPrefs = { ...notificationPrefs, [key]: !notificationPrefs[key] };
+    setUiPrefs(prev => ({ ...prev, notificationPrefs: newNotificationPrefs }));
+    updatePreferences({ notifications: newNotificationPrefs });
+  };
+
+  // Funzioni per gestire stato di connessione e sincronizzazione
+  const setConnectionStatus = (status) => {
+    const newNetworkPrefs = { ...networkPrefs, connectionStatus: status };
+    setUiPrefs(prev => ({ ...prev, networkPrefs: newNetworkPrefs }));
+    updatePreferences({ network: newNetworkPrefs });
+  };
+
+  const setLastSync = (timestamp) => {
+    const newNetworkPrefs = { ...networkPrefs, lastSync: timestamp };
+    setUiPrefs(prev => ({ ...prev, networkPrefs: newNetworkPrefs }));
+    updatePreferences({ network: newNetworkPrefs });
+  };
 
   const [serverStatus, setServerStatus] = useState({ isRunning: false, port: null });
 
@@ -62,6 +134,19 @@ const SettingsPage = () => {
       });
     }
   }, [user]);
+
+  // Sincronizza le preferenze UI con lo stato globale
+  useEffect(() => {
+    setUiPrefs(prev => ({
+      ...prev,
+      darkMode: theme === 'dark',
+      notificationPrefs: userPreferences.notifications || {},
+      networkPrefs: userPreferences.network || { mode: 'standalone', masterPath: '', sharedPath: '', masterPort: 3001 },
+      formattingPrefs: userPreferences.formatting || { dateFormat: 'DD/MM/YYYY', currencySymbol: '€' },
+      fiscalPrefs: userPreferences.fiscal || { vatNumber: '', taxCode: '', defaultTaxRate: 22 },
+      printPrefs: userPreferences.print || { logoUrl: '', printHeader: true, printFooter: true }
+    }));
+  }, [theme, userPreferences]);
 
   // Carica lo stato del server all'avvio
   useEffect(() => {

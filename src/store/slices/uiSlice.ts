@@ -89,6 +89,7 @@ interface UIState {
     autoSave: boolean;
     confirmDelete: boolean;
     showTooltips: boolean;
+    currentPage: string;
   };
   
   // Stato della ricerca globale
@@ -152,6 +153,7 @@ const initialState: UIState = {
     autoSave: true,
     confirmDelete: true,
     showTooltips: true,
+    currentPage: 'dashboard',
   },
   
   globalSearch: {

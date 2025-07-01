@@ -6,8 +6,8 @@ import { useData } from '../hooks/useData';
 const ProjectsPage = () => {
   const { 
     isModalOpen, 
-    openModal, 
-    closeModal, 
+    showModal, 
+    hideModal, 
     tableFilters, 
     setTableFilter, 
     setBreadcrumbs 
@@ -21,6 +21,11 @@ const ProjectsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentProject, setCurrentProject] = useState(null);
   const [projectToView, setProjectToView] = useState(null);
+  const [projectToDeleteId, setProjectToDeleteId] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
   const [newProject, setNewProject] = useState({
     name: '',
     clientId: '',
@@ -44,7 +49,7 @@ const ProjectsPage = () => {
       budget: `€ ${parseFloat(newProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     };
     addProject(projectToAdd);
-    setIsModalOpen(false);
+    hideModal('addProject');
     setNewProject({
       name: '',
       clientId: '',
@@ -59,48 +64,49 @@ const ProjectsPage = () => {
     // Pre-popola il form di modifica con i dati del progetto, convertendo il budget in numero
     const budgetValue = project.budget ? parseFloat(project.budget.replace('€', '').replace(/\./g, '').replace(',', '.')) : '';
     setCurrentProject({ ...project, budget: budgetValue });
-    setIsEditModalOpen(true);
+    showModal({ id: 'editProject', type: 'edit' });
   };
 
   const handleUpdateProject = (e) => {
     e.preventDefault();
     const updatedProject = { ...currentProject, budget: `€ ${parseFloat(currentProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` };
     updateProject(currentProject.id, updatedProject);
-    setIsEditModalOpen(false);
+    hideModal('editProject');
     setCurrentProject(null);
   };
 
   const openConfirmDeleteModal = (projectId) => {
     setProjectToDeleteId(projectId);
-    setIsConfirmDeleteModalOpen(true);
+    showModal({ id: 'confirmDelete', type: 'delete' });
   };
 
   const handleDeleteProject = () => {
     if (projectToDeleteId) {
       deleteProject(projectToDeleteId);
-      setIsConfirmDeleteModalOpen(false);
+      hideModal('confirmDelete');
       setProjectToDeleteId(null);
     }
   };
 
   const handleViewProject = (project) => {
     setProjectToView(project);
-    setIsViewModalOpen(true);
+    showModal({ id: 'viewProject', type: 'view' });
   };
 
-  useEffect(() => {
+  // Calcola i progetti filtrati
+  const currentFilteredProjects = React.useMemo(() => {
     let projectsToDisplay = projects || [];
 
-    if (tableFilters.projects?.status) {
-      projectsToDisplay = projectsToDisplay.filter(p => p.status === tableFilters.projects.status);
+    if (statusFilter) {
+      projectsToDisplay = projectsToDisplay.filter(p => p.status === statusFilter);
     }
 
-    if (tableFilters.projects?.startDate) {
-      projectsToDisplay = projectsToDisplay.filter(p => new Date(p.startDate) >= new Date(tableFilters.projects.startDate));
+    if (startDateFilter) {
+      projectsToDisplay = projectsToDisplay.filter(p => new Date(p.startDate) >= new Date(startDateFilter));
     }
 
-    if (tableFilters.projects?.endDate) {
-      projectsToDisplay = projectsToDisplay.filter(p => new Date(p.deadline) <= new Date(tableFilters.projects.endDate));
+    if (endDateFilter) {
+      projectsToDisplay = projectsToDisplay.filter(p => new Date(p.deadline) <= new Date(endDateFilter));
     }
 
     if (searchTerm) {
@@ -111,10 +117,12 @@ const ProjectsPage = () => {
       );
     }
     return projectsToDisplay;
-  }, [searchTerm, projects, tableFilters.projects]);
+  }, [searchTerm, projects, statusFilter, startDateFilter, endDateFilter]);
 
   const resetFilters = () => {
-    setTableFilter('projects', { status: '', startDate: '', endDate: '' });
+    setStatusFilter('');
+    setStartDateFilter('');
+    setEndDateFilter('');
     setSearchTerm('');
   };
 
@@ -123,7 +131,7 @@ const ProjectsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Progetti</h1>
         <button 
-          onClick={() => openModal('addProject')}
+          onClick={() => showModal({ id: 'addProject', type: 'add' })}
           className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -261,12 +269,12 @@ const ProjectsPage = () => {
         </div>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen('addProject') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuovo Progetto</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('addProject')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -308,7 +316,7 @@ const ProjectsPage = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
+                <button type="button" onClick={() => hideModal('addProject')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
                   Annulla
                 </button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">
@@ -320,12 +328,12 @@ const ProjectsPage = () => {
         </div>
       )}
 
-      {isViewModalOpen && projectToView && (
+      {isModalOpen('viewProject') && projectToView && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Dettagli Progetto</h2>
-              <button onClick={() => setIsViewModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('viewProject')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -370,7 +378,7 @@ const ProjectsPage = () => {
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={() => setIsViewModalOpen(false)}
+                onClick={() => hideModal('viewProject')}
                 className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg"
               >
                 Chiudi
@@ -380,12 +388,12 @@ const ProjectsPage = () => {
         </div>
       )}
 
-      {isEditModalOpen && currentProject && (
+      {isModalOpen('editProject') && currentProject && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Modifica Progetto</h2>
-              <button onClick={() => { setIsEditModalOpen(false); setCurrentProject(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => { hideModal('editProject'); setCurrentProject(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -427,7 +435,7 @@ const ProjectsPage = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentProject(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
+                <button type="button" onClick={() => { hideModal('editProject'); setCurrentProject(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
                   Annulla
                 </button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">
@@ -440,12 +448,12 @@ const ProjectsPage = () => {
       )}
 
       {/* Modale Conferma Eliminazione Progetto */}
-      {isConfirmDeleteModalOpen && (
+      {isModalOpen('confirmDelete') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Conferma Eliminazione</h2>
-              <button onClick={() => setIsConfirmDeleteModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('confirmDelete')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -454,7 +462,7 @@ const ProjectsPage = () => {
             </p>
             <div className="flex justify-end gap-3">
               <button 
-                onClick={() => setIsConfirmDeleteModalOpen(false)} 
+                onClick={() => hideModal('confirmDelete')} 
                 className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text"
               >
                 Annulla

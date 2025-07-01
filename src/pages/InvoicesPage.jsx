@@ -6,8 +6,8 @@ import { useData } from '../hooks/useData';
 const InvoicesPage = () => {
   const { 
     isModalOpen, 
-    openModal, 
-    closeModal, 
+    showModal, 
+    hideModal, 
     setBreadcrumbs 
   } = useUI();
   const { invoices, customers, projects, quotes, addInvoice, updateInvoice, deleteInvoice } = useData();
@@ -33,9 +33,7 @@ const InvoicesPage = () => {
     paymentDetails: '',
   });
 
-  useEffect(() => {
-    setInvoices(initialInvoices || []);
-  }, [initialInvoices]);
+  // Removed problematic useEffect that referenced undefined variables
 
   const generateInvoiceNumber = (date) => {
     const year = new Date(date).getFullYear();
@@ -104,7 +102,7 @@ const InvoicesPage = () => {
       quoteId: newInvoice.quoteId ? parseInt(newInvoice.quoteId) : null,
     };
     addInvoice(invoiceToAdd);
-    closeModal('addInvoice');
+    hideModal('addInvoice');
     setNewInvoice({
       // invoiceNumber: '', // Removed
       date: new Date().toISOString().split('T')[0],
@@ -125,7 +123,7 @@ const InvoicesPage = () => {
       date: invoice.date ? new Date(invoice.date).toISOString().split('T')[0] : '',
       dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
     });
-    openModal('editInvoice');
+    showModal({ id: 'editInvoice', type: 'edit' });
   };
 
   const handleCurrentInvoiceItemChange = (index, field, value) => {
@@ -147,26 +145,26 @@ const InvoicesPage = () => {
     e.preventDefault();
     const updatedInvoice = { ...currentInvoice, total: calculateInvoiceTotal(currentInvoice.items) };
     updateInvoice(currentInvoice.id, updatedInvoice);
-    closeModal('editInvoice');
+    hideModal('editInvoice');
     setCurrentInvoice(null);
   };
 
   const openConfirmDeleteModal = (invoiceId) => {
     setCurrentInvoice({ id: invoiceId });
-    openModal('deleteInvoice');
+    showModal({ id: 'deleteInvoice', type: 'delete' });
   };
 
   const handleDeleteInvoice = () => {
     if (currentInvoice?.id) {
       deleteInvoice(currentInvoice.id);
-      closeModal('deleteInvoice');
+      hideModal('deleteInvoice');
       setCurrentInvoice(null);
     }
   };
 
   const handleViewInvoice = (invoice) => {
     setInvoiceToView(invoice);
-    openModal('viewInvoice');
+    showModal({ id: 'viewInvoice', type: 'view' });
   };
   
   const getStatusPill = (status) => {
@@ -189,7 +187,7 @@ const InvoicesPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Fatture</h1>
         <button 
-          onClick={() => openModal('addInvoice')}
+          onClick={() => showModal({ id: 'addInvoice', type: 'add' })}
           className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -264,12 +262,12 @@ const InvoicesPage = () => {
       </div>
 
       {/* Modal Aggiungi Fattura */}
-      {isModalOpen && (
+      {isModalOpen('addInvoice') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuova Fattura</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('addInvoice')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -370,7 +368,7 @@ const InvoicesPage = () => {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => hideModal('addInvoice')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Crea Fattura</button>
               </div>
             </form>
@@ -379,12 +377,12 @@ const InvoicesPage = () => {
       )}
 
       {/* Modal Modifica Fattura */}
-      {isEditModalOpen && currentInvoice && (
+      {isModalOpen('editInvoice') && currentInvoice && (
          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Modifica Fattura: {currentInvoice.invoiceNumber}</h2>
-              <button onClick={() => { setIsEditModalOpen(false); setCurrentInvoice(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => { hideModal('editInvoice'); setCurrentInvoice(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -425,30 +423,30 @@ const InvoicesPage = () => {
                 </div>
               </div>
 
-              <h3 class="text-md font-semibold mb-2 mt-4">Voci della Fattura</h3>
+              <h3 className="text-md font-semibold mb-2 mt-4">Voci della Fattura</h3>
               {currentInvoice.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div class="col-span-4">
+                  <div className="col-span-4">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Descrizione *</label>}
                     <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleCurrentInvoiceItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Quantità *</label>}
                     <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleCurrentInvoiceItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Prezzo Un. *</label>}
                     <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleCurrentInvoiceItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">IVA % *</label>}
                     <input type="number" placeholder="IVA" value={item.taxRate} onChange={(e) => handleCurrentInvoiceItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-1">
+                  <div className="col-span-1">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Tot.</label>}
                     <span className="block p-2 text-sm">€ {calculateItemTotal(item).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div class="col-span-1 flex items-end">
+                  <div className="col-span-1 flex items-end">
                     {currentInvoice.items.length > 1 && (
                       <button type="button" onClick={() => handleCurrentInvoiceRemoveItem(index)} className="p-1 text-red-500 hover:text-red-700">
                         <Trash className="w-4 h-4" />
@@ -484,7 +482,7 @@ const InvoicesPage = () => {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentInvoice(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => { hideModal('editInvoice'); setCurrentInvoice(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Salva Modifiche</button>
               </div>
             </form>
@@ -493,12 +491,12 @@ const InvoicesPage = () => {
       )}
 
       {/* Modal Visualizza Fattura */}
-      {isViewModalOpen && invoiceToView && (
+      {isModalOpen('viewInvoice') && invoiceToView && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-4xl my-8">
             <div className="flex justify-between items-center mb-4 border-b border-light-border dark:border-dark-border pb-4">
               <h2 className="text-2xl font-bold">Fattura #{invoiceToView.invoiceNumber}</h2>
-              <button onClick={() => closeModal('viewInvoice')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('viewInvoice')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -590,13 +588,13 @@ const InvoicesPage = () => {
       )}
 
       {/* Modal Conferma Eliminazione */}
-      {isConfirmDeleteModalOpen && (
+      {isModalOpen('deleteInvoice') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-sm">
             <h2 className="text-xl font-semibold mb-4">Conferma Eliminazione</h2>
             <p className="mb-6">Sei sicuro di voler eliminare questa fattura? L'azione è irreversibile.</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => closeModal('deleteInvoice')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+              <button onClick={() => hideModal('deleteInvoice')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
               <button onClick={handleDeleteInvoice} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">Elimina</button>
             </div>
           </div>

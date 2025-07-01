@@ -133,7 +133,17 @@ class AnalyticsService {
       if (error.code === 'ERR_NETWORK') {
         const cachedSummary = await cacheService.get<WeeklySummary>('analytics', cacheKey);
         if (cachedSummary) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedSummary;
         }
       }
@@ -161,7 +171,17 @@ class AnalyticsService {
       if (error.code === 'ERR_NETWORK') {
         const cachedSummary = await cacheService.get<MonthlySummary>('analytics', cacheKey);
         if (cachedSummary) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedSummary;
         }
       }
@@ -189,7 +209,17 @@ class AnalyticsService {
       if (error.code === 'ERR_NETWORK') {
         const cachedMetrics = await cacheService.get<PerformanceMetrics>('analytics', cacheKey);
         if (cachedMetrics) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedMetrics;
         }
       }
@@ -224,7 +254,17 @@ class AnalyticsService {
       if (error.code === 'ERR_NETWORK') {
         const cachedTrend = await cacheService.get<TrendData[]>('analytics', cacheKey);
         if (cachedTrend) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedTrend;
         }
       }
@@ -252,7 +292,17 @@ class AnalyticsService {
       if (error.code === 'ERR_NETWORK') {
         const cachedStats = await cacheService.get<any>('analytics', cacheKey);
         if (cachedStats) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedStats;
         }
       }

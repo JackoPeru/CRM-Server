@@ -99,10 +99,11 @@ export const NetworkStatusProvider: React.FC<NetworkStatusProviderProps> = ({ ch
       lastOffline: new Date(),
     }));
     
-    toast.error('Connessione persa - Modalità offline attiva', {
-      duration: 5000,
-      icon: '📡',
-    });
+    // Toast disabilitato per evitare notifiche continue
+    // toast.error('Connessione persa - Modalità offline attiva', {
+    //   duration: 5000,
+    //   icon: '📡',
+    // });
   };
 
   /**
@@ -206,12 +207,12 @@ export const NetworkStatusProvider: React.FC<NetworkStatusProviderProps> = ({ ch
       connection.addEventListener('change', updateNetworkInfo);
     }
     
-    // Controllo periodico della connessione (ogni 30 secondi)
-    const intervalId = setInterval(() => {
-      if (!isForceOffline) {
-        checkConnection();
-      }
-    }, 30000);
+    // Controllo periodico della connessione disabilitato per evitare errori
+    // const intervalId = setInterval(() => {
+    //   if (!isForceOffline) {
+    //     checkConnection();
+    //   }
+    // }, 30000);
     
     // Aggiorna info iniziali
     updateNetworkInfo();
@@ -225,7 +226,7 @@ export const NetworkStatusProvider: React.FC<NetworkStatusProviderProps> = ({ ch
         connection.removeEventListener('change', updateNetworkInfo);
       }
       
-      clearInterval(intervalId);
+      // clearInterval(intervalId);
     };
   }, [isForceOffline]);
 

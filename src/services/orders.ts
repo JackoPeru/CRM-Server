@@ -91,7 +91,17 @@ class OrdersService {
       if (error.code === 'ERR_NETWORK') {
         const cachedOrders = await cacheService.get<Order[]>('orders', 'all');
         if (cachedOrders) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Notifica ridotta per evitare spam
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedOrders;
         }
       }
@@ -119,7 +129,17 @@ class OrdersService {
       if (error.code === 'ERR_NETWORK') {
         const cachedOrder = await cacheService.get<Order>('orders', id);
         if (cachedOrder) {
-          toast.error('Sei offline – dati in sola lettura');
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           return cachedOrder;
         }
       }
@@ -279,12 +299,22 @@ class OrdersService {
       if (error.code === 'ERR_NETWORK') {
         const cachedOrders = await cacheService.get<Order[]>('orders', 'all');
         if (cachedOrders) {
+          // Usa la stessa logica di throttling per le notifiche
+          const lastOfflineToast = localStorage.getItem('lastOfflineToast');
+          const now = Date.now();
+          
+          if (!lastOfflineToast || (now - parseInt(lastOfflineToast)) > 30000) {
+            toast.error('Sei offline – dati in sola lettura', {
+              duration: 5000,
+              id: 'offline-mode'
+            });
+            localStorage.setItem('lastOfflineToast', now.toString());
+          }
           const filteredOrders = cachedOrders.filter(order => 
             order.title.toLowerCase().includes(query.toLowerCase()) ||
             order.clientName.toLowerCase().includes(query.toLowerCase()) ||
             order.status.toLowerCase().includes(query.toLowerCase())
           );
-          toast.error('Sei offline – ricerca limitata ai dati locali');
           return filteredOrders;
         }
       }

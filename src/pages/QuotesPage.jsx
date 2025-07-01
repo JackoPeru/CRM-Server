@@ -6,8 +6,8 @@ import { useData } from '../hooks/useData';
 const QuotesPage = () => {
   const { 
     isModalOpen, 
-    openModal, 
-    closeModal, 
+    showModal, 
+    hideModal, 
     setBreadcrumbs 
   } = useUI();
   const { quotes, customers, projects, materials, addQuote, updateQuote, deleteQuote } = useData();
@@ -31,9 +31,7 @@ const QuotesPage = () => {
     validityDays: 30,
   });
 
-  useEffect(() => {
-    setQuotes(initialQuotes || []);
-  }, [initialQuotes]);
+
 
   const generateQuoteNumber = (date) => {
     const year = new Date(date).getFullYear();
@@ -112,7 +110,7 @@ const QuotesPage = () => {
       projectId: newQuote.projectId ? parseInt(newQuote.projectId) : null,
     };
     addQuote(quoteToAdd);
-    closeModal('addQuote');
+    hideModal('addQuote');
     setNewQuote({
       // quoteNumber: '', // Removed
       date: new Date().toISOString().split('T')[0],
@@ -131,7 +129,7 @@ const QuotesPage = () => {
       date: quote.date ? new Date(quote.date).toISOString().split('T')[0] : '',
       items: quote.items.map(item => ({...item, materialId: item.materialId || ''}))
     });
-    openModal('editQuote');
+    showModal({ id: 'editQuote', type: 'edit' });
   };
 
   const handleCurrentQuoteItemChange = (index, field, value) => {
@@ -164,26 +162,26 @@ const QuotesPage = () => {
     e.preventDefault();
     const updatedQuote = { ...currentQuote, total: calculateTotal(currentQuote.items) };
     updateQuote(currentQuote.id, updatedQuote);
-    closeModal('editQuote');
+    hideModal('editQuote');
     setCurrentQuote(null);
   };
 
   const openConfirmDeleteModal = (quoteId) => {
     setCurrentQuote({ id: quoteId });
-    openModal('deleteQuote');
+    showModal({ id: 'deleteQuote', type: 'delete' });
   };
 
   const handleDeleteQuote = () => {
     if (currentQuote?.id) {
       deleteQuote(currentQuote.id);
-      closeModal('deleteQuote');
+      hideModal('deleteQuote');
       setCurrentQuote(null);
     }
   };
 
   const handleViewQuote = (quote) => {
     setQuoteToView(quote);
-    openModal('viewQuote');
+    showModal({ id: 'viewQuote', type: 'view' });
   };
   
   const getStatusColor = (status) => {
@@ -210,10 +208,7 @@ const QuotesPage = () => {
     <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Preventivi</h1>
-        <button 
-          onClick={() => openModal('addQuote')}
-          className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
-        >
+        <button onClick={() => showModal({ id: 'addQuote', type: 'add' })} className="mb-4 px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2">
           <Plus className="w-5 h-5" />
           Nuovo Preventivo
         </button>
@@ -288,12 +283,12 @@ const QuotesPage = () => {
       </div>
 
       {/* Modal Aggiungi Preventivo */}
-      {isModalOpen && (
+      {isModalOpen('addQuote') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuovo Preventivo</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('addQuote')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -323,33 +318,33 @@ const QuotesPage = () => {
                 </div>
               </div>
 
-              <h3 class="text-md font-semibold mb-2 mt-4">Voci del Preventivo</h3>
+              <h3 className="text-md font-semibold mb-2 mt-4">Voci del Preventivo</h3>
               {newQuote.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div class="col-span-4">
+                  <div className="col-span-4">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Descrizione *</label>}
                     <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                      {index === 0 && <label className="block text-xs font-medium mb-1">Materiale</label>}
                      <select value={item.materialId} onChange={(e) => handleItemChange(index, 'materialId', e.target.value)} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm">
                         <option value="">Manuale</option>
                         {materials.map(mat => <option key={mat.id} value={mat.id}>{mat.name} ({mat.unit})</option>)}
                      </select>
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Quantità *</label>}
                     <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Prezzo Un. *</label>}
                     <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" disabled={!!item.materialId} />
                   </div>
-                  <div class="col-span-1">
+                  <div className="col-span-1">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Tot.</label>}
                     <span className="block p-2 text-sm">€ {(item.quantity * item.unitPrice).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div class="col-span-1 flex items-end">
+                  <div className="col-span-1 flex items-end">
                     {newQuote.items.length > 1 && (
                       <button type="button" onClick={() => handleRemoveItem(index)} className="p-1 text-red-500 hover:text-red-700">
                         <Trash className="w-4 h-4" />
@@ -387,7 +382,7 @@ const QuotesPage = () => {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => hideModal('addQuote')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Crea Preventivo</button>
               </div>
             </form>
@@ -396,12 +391,12 @@ const QuotesPage = () => {
       )}
 
       {/* Modal Modifica Preventivo */}
-      {isEditModalOpen && currentQuote && (
+      {isModalOpen('editQuote') && currentQuote && (
          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Modifica Preventivo: {currentQuote.quoteNumber}</h2>
-              <button onClick={() => { setIsEditModalOpen(false); setCurrentQuote(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => { hideModal('editQuote'); setCurrentQuote(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -431,33 +426,33 @@ const QuotesPage = () => {
                 </div>
               </div>
 
-              <h3 class="text-md font-semibold mb-2 mt-4">Voci del Preventivo</h3>
+              <h3 className="text-md font-semibold mb-2 mt-4">Voci del Preventivo</h3>
               {currentQuote.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div class="col-span-4">
+                  <div className="col-span-4">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Descrizione *</label>}
                     <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleCurrentQuoteItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                   <div class="col-span-2">
+                   <div className="col-span-2">
                      {index === 0 && <label className="block text-xs font-medium mb-1">Materiale</label>}
                      <select value={item.materialId} onChange={(e) => handleCurrentQuoteItemChange(index, 'materialId', e.target.value)} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm">
                         <option value="">Manuale</option>
                         {materials.map(mat => <option key={mat.id} value={mat.id}>{mat.name} ({mat.unit})</option>)}
                      </select>
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Quantità *</label>}
                     <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleCurrentQuoteItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div class="col-span-2">
+                  <div className="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Prezzo Un. *</label>}
                     <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleCurrentQuoteItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" disabled={!!item.materialId} />
                   </div>
-                  <div class="col-span-1">
+                  <div className="col-span-1">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Tot.</label>}
                     <span className="block p-2 text-sm">€ {(item.quantity * item.unitPrice).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div class="col-span-1 flex items-end">
+                  <div className="col-span-1 flex items-end">
                     {currentQuote.items.length > 1 && (
                       <button type="button" onClick={() => handleCurrentQuoteRemoveItem(index)} className="p-1 text-red-500 hover:text-red-700">
                         <Trash className="w-4 h-4" />
@@ -495,7 +490,7 @@ const QuotesPage = () => {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentQuote(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => { hideModal('editQuote'); setCurrentQuote(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Salva Modifiche</button>
               </div>
             </form>
@@ -504,7 +499,7 @@ const QuotesPage = () => {
       )}
 
       {/* Modal Visualizza Preventivo */}
-      {isViewModalOpen && quoteToView && (
+      {isModalOpen('viewQuote') && quoteToView && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-8 w-full max-w-2xl my-8">
             <div className="flex justify-between items-start mb-6">
@@ -512,7 +507,7 @@ const QuotesPage = () => {
                 <h2 className="text-2xl font-bold text-light-primary dark:text-dark-primary">Preventivo #{quoteToView.quoteNumber}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Data: {new Date(quoteToView.date).toLocaleDateString('it-IT')} - Validità: {quoteToView.validityDays} giorni</p>
               </div>
-              <button onClick={() => setIsViewModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('viewQuote')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -586,12 +581,12 @@ const QuotesPage = () => {
       )}
 
       {/* Modal Conferma Eliminazione */}
-      {isConfirmDeleteModalOpen && (
+      {isModalOpen('deleteQuote') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Conferma Eliminazione</h2>
-              <button onClick={() => setIsConfirmDeleteModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('deleteQuote')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -599,7 +594,7 @@ const QuotesPage = () => {
               Sei sicuro di voler eliminare questo preventivo? L'azione è irreversibile.
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setIsConfirmDeleteModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
+              <button onClick={() => hideModal('deleteQuote')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
               <button onClick={handleDeleteQuote} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">Elimina</button>
             </div>
           </div>
