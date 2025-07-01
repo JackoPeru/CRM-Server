@@ -167,10 +167,10 @@ const DashboardPage = () => {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
-      <WelcomeHeader userName={currentUser?.displayName || 'Utente'} />
+      <WelcomeHeader userName={'Utente'} />
 
       {/* Sezione Statistiche Interattive */}
-      <DashboardStats stats={stats} onNavigate={onNavigate} />
+      <DashboardStats stats={stats} />
 
       {/* Colonna Appunti Rapidi - Spostata in alto e a larghezza piena */}
       <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-sm col-span-1 lg:col-span-3">
