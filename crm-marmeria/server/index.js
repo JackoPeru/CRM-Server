@@ -2,6 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const {
+  authenticateToken,
+  requirePermission,
+  requireRole,
+  generateToken,
+  hashPassword,
+  verifyPassword,
+  findUserByCredentials,
+  readUsers,
+  writeUsers
+} = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,14 +30,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Middleware per logging delle richieste
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
-
-// Middleware per gestire errori di parsing JSON
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ error: 'Invalid JSON' });
-  }
   next();
 });
 
@@ -76,17 +79,169 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// AUTENTICAZIONE
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username e password richiesti' });
+    }
+    
+    const user = findUserByCredentials(username);
+    if (!user) {
+      return res.status(401).json({ error: 'Credenziali non valide' });
+    }
+    
+    // Verifica password hashata con bcrypt
+    const isValidPassword = await verifyPassword(password, user.password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Credenziali non valide' });
+    }
+    
+    const token = generateToken(user);
+    
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        permissions: user.permissions
+      }
+    });
+  } catch (error) {
+    console.error('Errore login:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
+  }
+});
+
+app.post('/api/auth/logout', authenticateToken, (req, res) => {
+  // Con JWT stateless, il logout è gestito lato client
+  res.json({ message: 'Logout effettuato con successo' });
+});
+
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  res.json({
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      role: req.user.role,
+      permissions: req.user.permissions
+    }
+  });
+});
+
+// GESTIONE UTENTI (solo admin)
+app.get('/api/users', authenticateToken, requireRole('admin'), (req, res) => {
+  try {
+    const users = readUsers();
+    const safeUsers = users.map(user => ({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }));
+    res.json(safeUsers);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero utenti' });
+  }
+});
+
+app.post('/api/users', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { username, email, password, firstName, lastName, role, permissions } = req.body;
+    
+    if (!username || !email || !password || !firstName || !lastName || !role) {
+      return res.status(400).json({ error: 'Tutti i campi sono richiesti' });
+    }
+    
+    const users = readUsers();
+    
+    // Verifica che username ed email siano unici
+    const existingUser = users.find(u => u.username === username || u.email === email);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username o email già esistenti' });
+    }
+    
+    const hashedPassword = await hashPassword(password);
+    
+    const newUser = {
+      id: generateId(),
+      username,
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+      isActive: true,
+      permissions: permissions || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    writeUsers(users);
+    
+    // Rimuovi la password dalla risposta
+    const { password: _, ...safeUser } = newUser;
+    res.status(201).json(safeUser);
+  } catch (error) {
+    console.error('Errore creazione utente:', error);
+    res.status(500).json({ error: 'Errore nella creazione utente' });
+  }
+});
+
 // CLIENTI
-app.get('/api/clients', (req, res) => {
+app.get('/api/clients', authenticateToken, requirePermission('clients.view'), (req, res) => {
   try {
     const clients = readData('clients');
+    console.log('🔍 [API] /api/clients - Dati clienti restituiti:', clients.length, 'clienti');
+    console.log('🔍 [API] /api/clients - Primi 2 clienti:', clients.slice(0, 2));
     res.json(clients);
   } catch (error) {
+    console.error('❌ [API] /api/clients - Errore:', error);
     res.status(500).json({ error: 'Errore nel recupero clienti' });
   }
 });
 
-app.get('/api/clients/:id', (req, res) => {
+// STATISTICHE CLIENTI
+app.get('/api/clients/stats', authenticateToken, requirePermission('clients.view'), (req, res) => {
+  try {
+    const clients = readData('clients');
+    const stats = {
+      total: clients.length,
+      byType: clients.reduce((acc, client) => {
+        const type = client.type || 'standard';
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {}),
+      recentlyAdded: clients.filter(client => {
+        const createdDate = new Date(client.createdAt);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return createdDate > weekAgo;
+      }).length
+    };
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel calcolo statistiche clienti' });
+  }
+});
+
+app.get('/api/clients/:id', authenticateToken, requirePermission('clients.view'), (req, res) => {
   try {
     const clients = readData('clients');
     const client = clients.find(c => c.id === req.params.id);
@@ -99,7 +254,7 @@ app.get('/api/clients/:id', (req, res) => {
   }
 });
 
-app.post('/api/clients', (req, res) => {
+app.post('/api/clients', authenticateToken, requirePermission('clients.create'), (req, res) => {
   try {
     const clients = readData('clients');
     const newClient = {
@@ -116,7 +271,7 @@ app.post('/api/clients', (req, res) => {
   }
 });
 
-app.put('/api/clients/:id', (req, res) => {
+app.put('/api/clients/:id', authenticateToken, requirePermission('clients.edit'), (req, res) => {
   try {
     const clients = readData('clients');
     const index = clients.findIndex(c => c.id === req.params.id);
@@ -135,7 +290,7 @@ app.put('/api/clients/:id', (req, res) => {
   }
 });
 
-app.delete('/api/clients/:id', (req, res) => {
+app.delete('/api/clients/:id', authenticateToken, requirePermission('clients.delete'), (req, res) => {
   try {
     const clients = readData('clients');
     const filteredClients = clients.filter(c => c.id !== req.params.id);
@@ -150,7 +305,7 @@ app.delete('/api/clients/:id', (req, res) => {
 });
 
 // ORDINI
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', authenticateToken, requirePermission('orders.view'), (req, res) => {
   try {
     const orders = readData('orders');
     res.json(orders);
@@ -159,7 +314,35 @@ app.get('/api/orders', (req, res) => {
   }
 });
 
-app.get('/api/orders/:id', (req, res) => {
+// STATISTICHE ORDINI
+app.get('/api/orders/stats', authenticateToken, requirePermission('orders.view'), (req, res) => {
+  try {
+    const orders = readData('orders');
+    const stats = {
+      total: orders.length,
+      byStatus: orders.reduce((acc, order) => {
+        const status = order.status || 'pending';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {}),
+      totalRevenue: orders.reduce((sum, order) => sum + (order.total || 0), 0),
+      averageOrderValue: orders.length > 0 ? orders.reduce((sum, order) => sum + (order.total || 0), 0) / orders.length : 0,
+      recentOrders: orders.filter(order => {
+        const createdDate = new Date(order.createdAt);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return createdDate > weekAgo;
+      }).length,
+      pendingOrders: orders.filter(order => order.status === 'pending').length,
+      completedOrders: orders.filter(order => order.status === 'completed').length
+    };
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel calcolo statistiche ordini' });
+  }
+});
+
+app.get('/api/orders/:id', authenticateToken, requirePermission('orders.view'), (req, res) => {
   try {
     const orders = readData('orders');
     const order = orders.find(o => o.id === req.params.id);
@@ -172,7 +355,7 @@ app.get('/api/orders/:id', (req, res) => {
   }
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', authenticateToken, requirePermission('orders.create'), (req, res) => {
   try {
     const orders = readData('orders');
     const newOrder = {
@@ -189,7 +372,7 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-app.put('/api/orders/:id', (req, res) => {
+app.put('/api/orders/:id', authenticateToken, requirePermission('orders.edit'), (req, res) => {
   try {
     const orders = readData('orders');
     const index = orders.findIndex(o => o.id === req.params.id);
@@ -208,7 +391,7 @@ app.put('/api/orders/:id', (req, res) => {
   }
 });
 
-app.delete('/api/orders/:id', (req, res) => {
+app.delete('/api/orders/:id', authenticateToken, requirePermission('orders.delete'), (req, res) => {
   try {
     const orders = readData('orders');
     const filteredOrders = orders.filter(o => o.id !== req.params.id);
@@ -223,7 +406,7 @@ app.delete('/api/orders/:id', (req, res) => {
 });
 
 // MATERIALI
-app.get('/api/materials', (req, res) => {
+app.get('/api/materials', authenticateToken, requirePermission('materials.view'), (req, res) => {
   try {
     const materials = readData('materials');
     res.json(materials);
@@ -232,71 +415,8 @@ app.get('/api/materials', (req, res) => {
   }
 });
 
-app.get('/api/materials/:id', (req, res) => {
-  try {
-    const materials = readData('materials');
-    const material = materials.find(m => m.id === req.params.id);
-    if (!material) {
-      return res.status(404).json({ error: 'Materiale non trovato' });
-    }
-    res.json(material);
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nel recupero materiale' });
-  }
-});
-
-app.post('/api/materials', (req, res) => {
-  try {
-    const materials = readData('materials');
-    const newMaterial = {
-      ...req.body,
-      id: req.body.id || generateId(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    materials.push(newMaterial);
-    writeData('materials', materials);
-    res.status(201).json(newMaterial);
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nella creazione materiale' });
-  }
-});
-
-app.put('/api/materials/:id', (req, res) => {
-  try {
-    const materials = readData('materials');
-    const index = materials.findIndex(m => m.id === req.params.id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Materiale non trovato' });
-    }
-    materials[index] = {
-      ...materials[index],
-      ...req.body,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('materials', materials);
-    res.json(materials[index]);
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nell\'aggiornamento materiale' });
-  }
-});
-
-app.delete('/api/materials/:id', (req, res) => {
-  try {
-    const materials = readData('materials');
-    const filteredMaterials = materials.filter(m => m.id !== req.params.id);
-    if (materials.length === filteredMaterials.length) {
-      return res.status(404).json({ error: 'Materiale non trovato' });
-    }
-    writeData('materials', filteredMaterials);
-    res.json({ message: 'Materiale eliminato con successo' });
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nell\'eliminazione materiale' });
-  }
-});
-
 // STATISTICHE MATERIALI
-app.get('/api/materials/stats', (req, res) => {
+app.get('/api/materials/stats', authenticateToken, requirePermission('materials.view'), (req, res) => {
   try {
     const materials = readData('materials');
     const stats = {
@@ -321,7 +441,7 @@ app.get('/api/materials/stats', (req, res) => {
 });
 
 // CATEGORIE MATERIALI
-app.get('/api/materials/categories', (req, res) => {
+app.get('/api/materials/categories', authenticateToken, requirePermission('materials.view'), (req, res) => {
   try {
     const materials = readData('materials');
     const categories = [...new Set(materials.map(m => m.category || 'Altro').filter(Boolean))];
@@ -332,7 +452,7 @@ app.get('/api/materials/categories', (req, res) => {
 });
 
 // FORNITORI MATERIALI
-app.get('/api/materials/suppliers', (req, res) => {
+app.get('/api/materials/suppliers', authenticateToken, requirePermission('materials.view'), (req, res) => {
   try {
     const materials = readData('materials');
     const suppliers = [...new Set(materials.map(m => m.supplier || 'Non specificato').filter(Boolean))];
@@ -342,8 +462,73 @@ app.get('/api/materials/suppliers', (req, res) => {
   }
 });
 
+app.get('/api/materials/:id', authenticateToken, requirePermission('materials.view'), (req, res) => {
+  try {
+    const materials = readData('materials');
+    const material = materials.find(m => m.id === req.params.id);
+    if (!material) {
+      return res.status(404).json({ error: 'Materiale non trovato' });
+    }
+    res.json(material);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero materiale' });
+  }
+});
+
+app.post('/api/materials', authenticateToken, requirePermission('materials.create'), (req, res) => {
+  try {
+    const materials = readData('materials');
+    const newMaterial = {
+      ...req.body,
+      id: req.body.id || generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    materials.push(newMaterial);
+    writeData('materials', materials);
+    res.status(201).json(newMaterial);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella creazione materiale' });
+  }
+});
+
+app.put('/api/materials/:id', authenticateToken, requirePermission('materials.edit'), (req, res) => {
+  try {
+    const materials = readData('materials');
+    const index = materials.findIndex(m => m.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Materiale non trovato' });
+    }
+    materials[index] = {
+      ...materials[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('materials', materials);
+    res.json(materials[index]);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'aggiornamento materiale' });
+  }
+});
+
+app.delete('/api/materials/:id', authenticateToken, requirePermission('materials.delete'), (req, res) => {
+  try {
+    const materials = readData('materials');
+    const filteredMaterials = materials.filter(m => m.id !== req.params.id);
+    if (materials.length === filteredMaterials.length) {
+      return res.status(404).json({ error: 'Materiale non trovato' });
+    }
+    writeData('materials', filteredMaterials);
+    res.json({ message: 'Materiale eliminato con successo' });
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'eliminazione materiale' });
+  }
+});
+
+
+
 // PROGETTI
-app.get('/api/projects', (req, res) => {
+app.get('/api/projects', authenticateToken, requirePermission('projects.view'), (req, res) => {
   try {
     const projects = readData('projects');
     res.json(projects);
@@ -352,7 +537,7 @@ app.get('/api/projects', (req, res) => {
   }
 });
 
-app.get('/api/projects/:id', (req, res) => {
+app.get('/api/projects/:id', authenticateToken, requirePermission('projects.view'), (req, res) => {
   try {
     const projects = readData('projects');
     const project = projects.find(p => p.id === req.params.id);
@@ -365,7 +550,7 @@ app.get('/api/projects/:id', (req, res) => {
   }
 });
 
-app.post('/api/projects', (req, res) => {
+app.post('/api/projects', authenticateToken, requirePermission('projects.create'), (req, res) => {
   try {
     const projects = readData('projects');
     const newProject = {
@@ -382,7 +567,7 @@ app.post('/api/projects', (req, res) => {
   }
 });
 
-app.put('/api/projects/:id', (req, res) => {
+app.put('/api/projects/:id', authenticateToken, requirePermission('projects.edit'), (req, res) => {
   try {
     const projects = readData('projects');
     const index = projects.findIndex(p => p.id === req.params.id);
@@ -401,7 +586,7 @@ app.put('/api/projects/:id', (req, res) => {
   }
 });
 
-app.delete('/api/projects/:id', (req, res) => {
+app.delete('/api/projects/:id', authenticateToken, requirePermission('projects.delete'), (req, res) => {
   try {
     const projects = readData('projects');
     const filteredProjects = projects.filter(p => p.id !== req.params.id);
@@ -416,7 +601,7 @@ app.delete('/api/projects/:id', (req, res) => {
 });
 
 // PREVENTIVI
-app.get('/api/quotes', (req, res) => {
+app.get('/api/quotes', authenticateToken, requirePermission('quotes.view'), (req, res) => {
   try {
     const quotes = readData('quotes');
     res.json(quotes);
@@ -425,7 +610,7 @@ app.get('/api/quotes', (req, res) => {
   }
 });
 
-app.get('/api/quotes/:id', (req, res) => {
+app.get('/api/quotes/:id', authenticateToken, requirePermission('quotes.view'), (req, res) => {
   try {
     const quotes = readData('quotes');
     const quote = quotes.find(q => q.id === req.params.id);
@@ -438,7 +623,7 @@ app.get('/api/quotes/:id', (req, res) => {
   }
 });
 
-app.post('/api/quotes', (req, res) => {
+app.post('/api/quotes', authenticateToken, requirePermission('quotes.create'), (req, res) => {
   try {
     const quotes = readData('quotes');
     const newQuote = {
@@ -455,7 +640,7 @@ app.post('/api/quotes', (req, res) => {
   }
 });
 
-app.put('/api/quotes/:id', (req, res) => {
+app.put('/api/quotes/:id', authenticateToken, requirePermission('quotes.edit'), (req, res) => {
   try {
     const quotes = readData('quotes');
     const index = quotes.findIndex(q => q.id === req.params.id);
@@ -474,7 +659,7 @@ app.put('/api/quotes/:id', (req, res) => {
   }
 });
 
-app.delete('/api/quotes/:id', (req, res) => {
+app.delete('/api/quotes/:id', authenticateToken, requirePermission('quotes.delete'), (req, res) => {
   try {
     const quotes = readData('quotes');
     const filteredQuotes = quotes.filter(q => q.id !== req.params.id);
@@ -489,7 +674,7 @@ app.delete('/api/quotes/:id', (req, res) => {
 });
 
 // FATTURE
-app.get('/api/invoices', (req, res) => {
+app.get('/api/invoices', authenticateToken, requirePermission('invoices.view'), (req, res) => {
   try {
     const invoices = readData('invoices');
     res.json(invoices);
@@ -498,7 +683,7 @@ app.get('/api/invoices', (req, res) => {
   }
 });
 
-app.get('/api/invoices/:id', (req, res) => {
+app.get('/api/invoices/:id', authenticateToken, requirePermission('invoices.view'), (req, res) => {
   try {
     const invoices = readData('invoices');
     const invoice = invoices.find(i => i.id === req.params.id);
@@ -511,7 +696,7 @@ app.get('/api/invoices/:id', (req, res) => {
   }
 });
 
-app.post('/api/invoices', (req, res) => {
+app.post('/api/invoices', authenticateToken, requirePermission('invoices.create'), (req, res) => {
   try {
     const invoices = readData('invoices');
     const newInvoice = {
@@ -528,7 +713,7 @@ app.post('/api/invoices', (req, res) => {
   }
 });
 
-app.put('/api/invoices/:id', (req, res) => {
+app.put('/api/invoices/:id', authenticateToken, requirePermission('invoices.edit'), (req, res) => {
   try {
     const invoices = readData('invoices');
     const index = invoices.findIndex(i => i.id === req.params.id);
@@ -547,7 +732,7 @@ app.put('/api/invoices/:id', (req, res) => {
   }
 });
 
-app.delete('/api/invoices/:id', (req, res) => {
+app.delete('/api/invoices/:id', authenticateToken, requirePermission('invoices.delete'), (req, res) => {
   try {
     const invoices = readData('invoices');
     const filteredInvoices = invoices.filter(i => i.id !== req.params.id);
@@ -562,7 +747,7 @@ app.delete('/api/invoices/:id', (req, res) => {
 });
 
 // ANALYTICS
-app.get('/api/analytics/daily/:date?', (req, res) => {
+app.get('/api/analytics/daily/:date?', authenticateToken, requirePermission('dashboard.view'), (req, res) => {
   try {
     const targetDate = req.params.date || new Date().toISOString().split('T')[0];
     const orders = readData('orders');
@@ -592,7 +777,7 @@ app.get('/api/analytics/daily/:date?', (req, res) => {
   }
 });
 
-app.get('/api/analytics/dashboard', (req, res) => {
+app.get('/api/analytics/dashboard', authenticateToken, requirePermission('dashboard.view'), (req, res) => {
   try {
     const orders = readData('orders');
     const clients = readData('clients');
@@ -627,7 +812,7 @@ app.get('/api/analytics/dashboard', (req, res) => {
   }
 });
 
-app.get('/api/analytics/trends', (req, res) => {
+app.get('/api/analytics/trends', authenticateToken, requirePermission('dashboard.view'), (req, res) => {
   try {
     const { metric, period, startDate, endDate } = req.query;
     const orders = readData('orders');
@@ -687,7 +872,7 @@ app.get('/api/analytics/trends', (req, res) => {
 });
 
 // RICERCA
-app.get('/api/clients/search', (req, res) => {
+app.get('/api/clients/search', authenticateToken, requirePermission('clients.view'), (req, res) => {
   try {
     const { q } = req.query;
     const clients = readData('clients');
@@ -702,7 +887,7 @@ app.get('/api/clients/search', (req, res) => {
   }
 });
 
-app.get('/api/orders/search', (req, res) => {
+app.get('/api/orders/search', authenticateToken, requirePermission('orders.view'), (req, res) => {
   try {
     const { q } = req.query;
     const orders = readData('orders');
@@ -717,7 +902,7 @@ app.get('/api/orders/search', (req, res) => {
   }
 });
 
-app.get('/api/orders/by-status/:status', (req, res) => {
+app.get('/api/orders/by-status/:status', authenticateToken, requirePermission('orders.view'), (req, res) => {
   try {
     const { status } = req.params;
     const orders = readData('orders');
@@ -728,56 +913,15 @@ app.get('/api/orders/by-status/:status', (req, res) => {
   }
 });
 
-// STATISTICHE CLIENTI
-app.get('/api/clients/stats', (req, res) => {
-  try {
-    const clients = readData('clients');
-    const stats = {
-      total: clients.length,
-      byType: clients.reduce((acc, client) => {
-        const type = client.type || 'standard';
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {}),
-      recentlyAdded: clients.filter(client => {
-        const createdDate = new Date(client.createdAt);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return createdDate > weekAgo;
-      }).length
-    };
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nel calcolo statistiche clienti' });
-  }
-});
 
-// STATISTICHE ORDINI
-app.get('/api/orders/stats', (req, res) => {
-  try {
-    const orders = readData('orders');
-    const stats = {
-      total: orders.length,
-      byStatus: orders.reduce((acc, order) => {
-        const status = order.status || 'pending';
-        acc[status] = (acc[status] || 0) + 1;
-        return acc;
-      }, {}),
-      totalRevenue: orders.reduce((sum, order) => sum + (order.total || 0), 0),
-      averageOrderValue: orders.length > 0 ? orders.reduce((sum, order) => sum + (order.total || 0), 0) / orders.length : 0,
-      recentOrders: orders.filter(order => {
-        const createdDate = new Date(order.createdAt);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return createdDate > weekAgo;
-      }).length,
-      pendingOrders: orders.filter(order => order.status === 'pending').length,
-      completedOrders: orders.filter(order => order.status === 'completed').length
-    };
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: 'Errore nel calcolo statistiche ordini' });
+
+// Middleware per gestire errori di parsing JSON
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Errore parsing JSON:', err.message);
+    return res.status(400).json({ error: 'Invalid JSON' });
   }
+  next();
 });
 
 // Middleware per gestire errori 404

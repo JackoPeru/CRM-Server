@@ -1,7 +1,7 @@
 import { useClients } from './useClients';
 import { useOrders } from './useOrders';
 import { useMaterials } from './useMaterials';
-import { useAuth } from './useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from './useAnalytics';
 
 /**
@@ -17,9 +17,8 @@ export const useData = () => {
 
   return {
     // Dati utente
-    user: auth.currentUser,
+    user: auth.user,
     isAuthenticated: auth.isAuthenticated,
-    updateUser: auth.updateProfile,
     
     // Clienti
     customers: clients.clients,
@@ -68,7 +67,7 @@ export const useData = () => {
     
     // Stato generale
     dataState: {
-      user: auth.currentUser,
+      user: auth.user,
       customers: clients.clients,
       projects: orders.orders,
       materials: materials.materials,

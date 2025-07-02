@@ -14,9 +14,11 @@ export interface Material {
   category: string;
   supplier: string;
   unitPrice: number;
+  price?: number; // Campo legacy per compatibilità
   unit: string; // m², kg, pz, etc.
   stockQuantity: number;
   minStockLevel: number;
+  stock?: number; // Campo legacy per compatibilità
   description?: string;
   specifications?: Record<string, any>;
   createdAt: string;

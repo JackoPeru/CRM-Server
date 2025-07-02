@@ -49,7 +49,7 @@ const Sidebar = ({
       <div className="p-4 border-t border-light-accent dark:border-dark-accent">
         {currentUser && (
           <div className="text-xs">
-            <p>User ID: {currentUser.uid}</p>
+            <p>User ID: {currentUser.id}</p>
             <p>App ID: {appId}</p>
           </div>
         )}

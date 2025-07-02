@@ -28,25 +28,5 @@
     "type": "premium",
     "createdAt": "2024-02-01T09:45:00.000Z",
     "updatedAt": "2024-02-01T09:45:00.000Z"
-  },
-  {
-    "name": "c",
-    "email": "",
-    "phone": "",
-    "address": "",
-    "type": "Privato",
-    "id": "17513834216745rmahoyof",
-    "createdAt": "2025-07-01T15:23:41.674Z",
-    "updatedAt": "2025-07-01T15:23:41.674Z"
-  },
-  {
-    "name": "c",
-    "email": "",
-    "phone": "",
-    "address": "",
-    "type": "Privato",
-    "id": "1751383431252rbyrahkg5",
-    "createdAt": "2025-07-01T15:23:51.252Z",
-    "updatedAt": "2025-07-01T15:23:51.252Z"
   }
 ]

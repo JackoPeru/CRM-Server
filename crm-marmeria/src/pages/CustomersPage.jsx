@@ -16,7 +16,18 @@ const CustomersPage = () => {
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Clienti' }]);
-  }, [setBreadcrumbs]);
+    
+    // Inizializza i filtri della tabella se non esistono
+    if (!tableFilters.customers) {
+      setTableFilter('customers', { type: '', hasVat: '' });
+    }
+  }, [setBreadcrumbs, setTableFilter, tableFilters.customers]);
+
+  // Debug: Log per verificare i dati dei clienti
+  useEffect(() => {
+    console.log('🔍 [CustomersPage] Dati clienti ricevuti:', customers);
+    console.log('🔍 [CustomersPage] Numero clienti:', customers?.length || 0);
+  }, [customers]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentCustomer, setCurrentCustomer] = useState(null);
@@ -81,11 +92,23 @@ const CustomersPage = () => {
   };
 
   const filteredCustomers = customers?.filter(
-    (customer) =>
-      (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (tableFilters.customers?.type === '' || customer.type === tableFilters.customers?.type) &&
-      (tableFilters.customers?.hasVat === '' || (tableFilters.customers?.hasVat === 'si' && customer.vatNumber) || (tableFilters.customers?.hasVat === 'no' && !customer.vatNumber))
+    (customer) => {
+      // Filtro per termine di ricerca
+      const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro per tipo cliente - se non è definito o è vuoto, mostra tutti
+      const typeFilter = tableFilters.customers?.type;
+      const matchesType = !typeFilter || typeFilter === '' || customer.type === typeFilter;
+      
+      // Filtro per partita IVA - se non è definito o è vuoto, mostra tutti
+      const vatFilter = tableFilters.customers?.hasVat;
+      const matchesVat = !vatFilter || vatFilter === '' || 
+                        (vatFilter === 'si' && customer.vatNumber) || 
+                        (vatFilter === 'no' && !customer.vatNumber);
+      
+      return matchesSearch && matchesType && matchesVat;
+    }
   ) || [];
 
   const handleFilterChange = (e) => {
@@ -149,36 +172,44 @@ const CustomersPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-light-border dark:divide-dark-border">
-              {filteredCustomers.map((customer) => (
-                <tr key={customer.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap">{customer.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customer.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customer.phone}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{customer.address}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      customer.type === 'Privato'
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                    }`}>
-                      {customer.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleViewCustomer(customer)} className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded">
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => handleEditCustomer(customer)} className="p-1 text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded">
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => openConfirmDeleteModal(customer.id)} className="p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded">
-                        <Trash className="w-5 h-5" />
-                      </button>
-                    </div>
+              {filteredCustomers.length > 0 ? (
+                filteredCustomers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
+                    <td className="px-6 py-4 whitespace-nowrap">{customer.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{customer.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{customer.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{customer.address}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        customer.type === 'Privato'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                          : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                      }`}>
+                        {customer.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => handleViewCustomer(customer)} className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded">
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => handleEditCustomer(customer)} className="p-1 text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded">
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button onClick={() => openConfirmDeleteModal(customer.id)} className="p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded">
+                          <Trash className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                    {customers?.length === 0 ? 'Nessun cliente trovato.' : 'Nessun cliente corrisponde ai filtri applicati.'}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

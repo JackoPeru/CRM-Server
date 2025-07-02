@@ -30,6 +30,7 @@ export const useOrders = () => {
 
   // Carica gli ordini all'avvio
   useEffect(() => {
+    console.log('🔍 [useOrders] useEffect iniziale - caricamento dati ordini');
     dispatch(fetchOrders());
     dispatch(fetchOrdersStats());
   }, [dispatch]);
@@ -45,13 +46,16 @@ export const useOrders = () => {
    * Aggiunge un nuovo ordine
    */
   const addOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('➕ [useOrders] Aggiunta ordine:', orderData.title);
     const result = await dispatch(createOrder(orderData));
     if (result.meta.requestStatus === 'fulfilled') {
-      // Ricarica la lista dopo l'aggiunta
-      dispatch(fetchOrders());
-      dispatch(fetchOrdersStats());
+      console.log('✅ [useOrders] Ordine aggiunto con successo');
+      // PROBLEMA: Queste chiamate causano un loop infinito!
+      // dispatch(fetchOrders());
+      // dispatch(fetchOrdersStats());
       return true;
     }
+    console.log('❌ [useOrders] Errore aggiunta ordine');
     return false;
   }, [dispatch]);
 
@@ -59,13 +63,16 @@ export const useOrders = () => {
    * Aggiorna un ordine esistente
    */
   const updateOrderData = useCallback(async (id: string, orderData: Partial<Order>) => {
+    console.log('✏️ [useOrders] Aggiornamento ordine:', id);
     const result = await dispatch(updateOrder({ id, data: orderData }));
     if (result.meta.requestStatus === 'fulfilled') {
-      // Ricarica la lista dopo l'aggiornamento
-      dispatch(fetchOrders());
-      dispatch(fetchOrdersStats());
+      console.log('✅ [useOrders] Ordine aggiornato con successo');
+      // PROBLEMA: Queste chiamate causano un loop infinito!
+      // dispatch(fetchOrders());
+      // dispatch(fetchOrdersStats());
       return true;
     }
+    console.log('❌ [useOrders] Errore aggiornamento ordine');
     return false;
   }, [dispatch]);
 
@@ -73,13 +80,16 @@ export const useOrders = () => {
    * Elimina un ordine
    */
   const removeOrder = useCallback(async (id: string) => {
+    console.log('🗑️ [useOrders] Eliminazione ordine:', id);
     const result = await dispatch(removeOrderAction(id));
     if (result.meta.requestStatus === 'fulfilled') {
-      // Ricarica la lista dopo l'eliminazione
-      dispatch(fetchOrders());
-      dispatch(fetchOrdersStats());
+      console.log('✅ [useOrders] Ordine eliminato con successo');
+      // PROBLEMA: Queste chiamate causano un loop infinito!
+      // dispatch(fetchOrders());
+      // dispatch(fetchOrdersStats());
       return true;
     }
+    console.log('❌ [useOrders] Errore eliminazione ordine');
     return false;
   }, [dispatch]);
 
@@ -103,9 +113,10 @@ export const useOrders = () => {
    * Imposta i filtri per gli ordini
    */
   const setFilter = useCallback((filter: Partial<OrdersFilters>) => {
+    console.log('🔍 [useOrders] Impostazione filtri:', filter);
     dispatch(setOrdersFilters(filter));
-    // Ricarica i dati con i nuovi filtri
-    dispatch(fetchOrders());
+    // PROBLEMA: Questa chiamata può causare troppe richieste API
+    // dispatch(fetchOrders());
   }, [dispatch]);
 
   /**

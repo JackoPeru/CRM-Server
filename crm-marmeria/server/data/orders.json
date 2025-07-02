@@ -1,56 +1,5 @@
 [
   {
-    "id": "order_001",
-    "clientId": "client_001",
-    "clientName": "Mario Rossi",
-    "status": "completed",
-    "total": 2500,
-    "items": [
-      {
-        "materialId": "mat_001",
-        "materialName": "Marmo Carrara",
-        "quantity": 5,
-        "unitPrice": 500
-      }
-    ],
-    "createdAt": "2024-01-16T08:00:00.000Z",
-    "updatedAt": "2024-01-20T16:30:00.000Z"
-  },
-  {
-    "id": "order_002",
-    "clientId": "client_002",
-    "clientName": "Giulia Bianchi",
-    "status": "pending",
-    "total": 1800,
-    "items": [
-      {
-        "materialId": "mat_002",
-        "materialName": "Granito Nero",
-        "quantity": 3,
-        "unitPrice": 600
-      }
-    ],
-    "createdAt": "2024-01-25T11:15:00.000Z",
-    "updatedAt": "2024-01-25T11:15:00.000Z"
-  },
-  {
-    "id": "order_003",
-    "clientId": "client_003",
-    "clientName": "Luca Verdi",
-    "status": "in_progress",
-    "total": 3200,
-    "items": [
-      {
-        "materialId": "mat_003",
-        "materialName": "Travertino Romano",
-        "quantity": 8,
-        "unitPrice": 400
-      }
-    ],
-    "createdAt": "2024-02-02T13:20:00.000Z",
-    "updatedAt": "2024-02-05T10:45:00.000Z"
-  },
-  {
     "name": "re",
     "clientId": "client_001",
     "startDate": "2025-07-03",

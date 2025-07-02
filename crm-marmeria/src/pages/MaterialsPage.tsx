@@ -138,7 +138,7 @@ const MaterialsPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap font-medium text-light-text dark:text-dark-text">{material.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.category}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.unit}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">€ {material.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">€ {(material.unitPrice || material.price || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-light-text dark:text-dark-text">{material.supplier || 'N/D'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex justify-end gap-2">
@@ -312,7 +312,7 @@ const MaterialsPage: React.FC = () => {
                     name="unitPrice" 
                     id="edit-material-price" 
                     step="0.01" 
-                    value={currentMaterial.unitPrice} 
+                    value={currentMaterial.unitPrice || currentMaterial.price || 0} 
                     onChange={(e) => setCurrentMaterial({...currentMaterial, unitPrice: parseFloat(e.target.value) || 0})} 
                     required 
                     className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary" 
@@ -365,10 +365,10 @@ const MaterialsPage: React.FC = () => {
               <p><strong className="dark:text-dark-text">Descrizione:</strong> {materialToView.description || 'N/D'}</p>
               <p><strong className="dark:text-dark-text">Categoria:</strong> {materialToView.category}</p>
               <p><strong className="dark:text-dark-text">Unità di Misura:</strong> {materialToView.unit}</p>
-              <p><strong className="dark:text-dark-text">Prezzo Unitario:</strong> € {materialToView.unitPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong className="dark:text-dark-text">Prezzo Unitario:</strong> € {(materialToView.unitPrice || materialToView.price || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               <p><strong className="dark:text-dark-text">Fornitore:</strong> {materialToView.supplier || 'N/D'}</p>
-              <p><strong className="dark:text-dark-text">Quantità in Stock:</strong> {materialToView.stockQuantity}</p>
-              <p><strong className="dark:text-dark-text">Livello Minimo:</strong> {materialToView.minStockLevel}</p>
+              <p><strong className="dark:text-dark-text">Quantità in Stock:</strong> {materialToView.stockQuantity || materialToView.stock || 0}</p>
+              <p><strong className="dark:text-dark-text">Livello Minimo:</strong> {materialToView.minStockLevel || 0}</p>
             </div>
             <div className="mt-6 flex justify-end">
               <button type="button" onClick={() => hideModal('viewMaterial')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Chiudi</button>
