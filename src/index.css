@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Stili aggiuntivi opzionali */
+html, body, #root { height: 100%; }
+
+/* Layout principale */
+.app {
+  @apply flex h-full bg-gray-50;
+}
+
+.app.dark {
+  @apply bg-gray-900;
+}
+
+.main-content {
+  @apply flex-1 flex flex-col min-h-0;
+}
+
+.sidebar-open .main-content {
+  @apply ml-64;
+}
+
+/* Assicura che il main possa scrollare */
+main {
+  @apply flex-1 overflow-y-auto p-4;
+}
+
+/* Fix per le notifiche toast */
+.react-hot-toast {
+  z-index: 9999 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar-open .main-content {
+    @apply ml-0;
+  }
+}
