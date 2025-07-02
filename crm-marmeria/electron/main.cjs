@@ -63,7 +63,7 @@ function checkAndStartServer() {
     if (fs.existsSync(prefsPath)) {
       const networkPrefs = JSON.parse(fs.readFileSync(prefsPath, 'utf8'));
       
-      if (networkPrefs.mode === 'master') {
+      if (networkPrefs.mode === 'master' && !dataSharingServer.isServerRunning) {
         const port = networkPrefs.masterPort || 3001;
         dataSharingServer.start(port)
           .then(result => {
@@ -113,12 +113,98 @@ ipcMain.handle('test-master-connection', async (event, masterPath) => {
       return { success: false, error: 'Percorso non trovato' };
     }
     
+    // Verifica i permessi di lettura
+    try {
+      fs.accessSync(masterPath, fs.constants.R_OK);
+    } catch (readError) {
+      return { success: false, error: 'Permessi di lettura negati sulla cartella condivisa' };
+    }
+    
+    // Verifica i permessi di scrittura
+    try {
+      fs.accessSync(masterPath, fs.constants.W_OK);
+    } catch (writeError) {
+      return { success: false, error: 'Permessi di scrittura negati sulla cartella condivisa. Verificare che la cartella sia condivisa con permessi di scrittura per questo utente.' };
+    }
+    
     // Testa la scrittura creando un file temporaneo
     const testFile = path.join(masterPath, '.test-access');
-    fs.writeFileSync(testFile, 'test');
-    fs.unlinkSync(testFile);
+    try {
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+    } catch (fileError) {
+      return { success: false, error: `Impossibile scrivere nella cartella condivisa: ${fileError.message}. Verificare i permessi di condivisione di rete.` };
+    }
     
     return { success: true };
+  } catch (error) {
+    return { success: false, error: `Errore di connessione: ${error.message}` };
+  }
+});
+
+// Handler per salvare backup nella cartella condivisa
+ipcMain.handle('save-backup-to-shared', async (event, backupData, filename) => {
+  const fs = require('fs');
+  
+  try {
+    if (!dataSharingServer || !dataSharingServer.sharedDataPath) {
+      return { success: false, error: 'Cartella condivisa non configurata' };
+    }
+    
+    const backupPath = path.join(dataSharingServer.sharedDataPath, filename);
+    fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
+    
+    return { success: true, path: backupPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler per caricare backup dalla cartella condivisa
+ipcMain.handle('load-backup-from-shared', async (event, filename) => {
+  const fs = require('fs');
+  
+  try {
+    if (!dataSharingServer || !dataSharingServer.sharedDataPath) {
+      return { success: false, error: 'Cartella condivisa non configurata' };
+    }
+    
+    const backupPath = path.join(dataSharingServer.sharedDataPath, filename);
+    
+    if (!fs.existsSync(backupPath)) {
+      return { success: false, error: 'File di backup non trovato' };
+    }
+    
+    const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+    return { success: true, data: backupData };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler per elencare i backup nella cartella condivisa
+ipcMain.handle('list-backups-in-shared', async (event) => {
+  const fs = require('fs');
+  
+  try {
+    if (!dataSharingServer || !dataSharingServer.sharedDataPath) {
+      return { success: false, error: 'Cartella condivisa non configurata' };
+    }
+    
+    const files = fs.readdirSync(dataSharingServer.sharedDataPath)
+      .filter(file => file.endsWith('.json') && file.includes('backup'))
+      .map(file => {
+        const filePath = path.join(dataSharingServer.sharedDataPath, file);
+        const stats = fs.statSync(filePath);
+        return {
+          name: file,
+          size: stats.size,
+          modified: stats.mtime.toISOString()
+        };
+      })
+      .sort((a, b) => new Date(b.modified) - new Date(a.modified));
+    
+    return { success: true, files };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -130,10 +216,18 @@ ipcMain.handle('sync-with-master', async (event, collection, masterPath) => {
   const path = require('path');
   
   try {
-    const dataFile = path.join(masterPath, `${collection}.json`);
+    const syncFile = path.join(masterPath, 'crm-marmeria-sync.json');
     
-    if (fs.existsSync(dataFile)) {
-      const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+    if (fs.existsSync(syncFile)) {
+      const allData = JSON.parse(fs.readFileSync(syncFile, 'utf8'));
+      const data = allData[collection] || [];
+      
+      // Salva i dati anche nella cartella condivisa locale del client
+      if (dataSharingServer && dataSharingServer.isRunning) {
+        dataSharingServer.saveSharedData(collection, data);
+        console.log(`✅ Dati ${collection} sincronizzati e salvati nella cartella condivisa locale`);
+      }
+      
       return { success: true, data };
     } else {
       return { success: true, data: [] };
@@ -149,13 +243,15 @@ ipcMain.handle('push-to-master', async (event, collection, action, data, masterP
   const path = require('path');
   
   try {
-    const dataFile = path.join(masterPath, `${collection}.json`);
-    let currentData = [];
+    const syncFile = path.join(masterPath, 'crm-marmeria-sync.json');
+    let allData = {};
     
-    // Leggi i dati esistenti
-    if (fs.existsSync(dataFile)) {
-      currentData = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+    // Leggi i dati esistenti dal file di sincronizzazione
+    if (fs.existsSync(syncFile)) {
+      allData = JSON.parse(fs.readFileSync(syncFile, 'utf8'));
     }
+    
+    let currentData = allData[collection] || [];
     
     // Applica l'operazione
     switch (action) {
@@ -181,8 +277,19 @@ ipcMain.handle('push-to-master', async (event, collection, action, data, masterP
         break;
     }
     
-    // Salva i dati aggiornati
-    fs.writeFileSync(dataFile, JSON.stringify(currentData, null, 2));
+    // Aggiorna i dati nel file di sincronizzazione
+    allData[collection] = currentData;
+    allData._lastModified = new Date().toISOString();
+    allData._source = 'client';
+    
+    // Salva il file di sincronizzazione aggiornato
+    fs.writeFileSync(syncFile, JSON.stringify(allData, null, 2));
+    
+    // Salva i dati anche nella cartella condivisa locale del client
+    if (dataSharingServer && dataSharingServer.isRunning) {
+      dataSharingServer.saveSharedData(collection, currentData);
+      console.log(`✅ Dati ${collection} aggiornati e salvati nella cartella condivisa locale`);
+    }
     
     return { success: true, data: currentData };
   } catch (error) {

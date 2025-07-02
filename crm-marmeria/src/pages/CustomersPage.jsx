@@ -1,14 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Edit, Trash, Search, Plus, Filter, X } from 'lucide-react';
+import useUI from '../hooks/useUI';
+import { useData } from '../hooks/useData';
 
-const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, deleteCustomer, onNavigate }) => {
-  const [filters, setFilters] = useState({ type: '', hasVat: '' });
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+const CustomersPage = () => {
+  const { 
+    isModalOpen, 
+    showModal, 
+    hideModal, 
+    tableFilters, 
+    setTableFilter, 
+    setBreadcrumbs 
+  } = useUI();
+  const { customers, addCustomer, updateCustomer, deleteCustomer } = useData();
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: 'Clienti' }]);
+  }, [setBreadcrumbs]);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [customerToView, setCustomerToView] = useState(null);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
@@ -27,7 +38,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
   const handleAddCustomer = (e) => {
     e.preventDefault();
     addCustomer(newCustomer);
-    setIsModalOpen(false);
+    hideModal('addCustomer');
     setNewCustomer({
       name: '',
       email: '',
@@ -39,66 +50,65 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
 
   const handleEditCustomer = (customer) => {
     setCurrentCustomer(customer);
-    setIsEditModalOpen(true);
+    showModal({ id: 'editCustomer', type: 'edit' });
   };
 
   const handleUpdateCustomer = (e) => {
     e.preventDefault();
     updateCustomer(currentCustomer.id, currentCustomer);
-    setIsEditModalOpen(false);
+    hideModal('editCustomer');
     setCurrentCustomer(null);
   };
 
   const [customerToDelete, setCustomerToDelete] = useState(null);
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
 
   const openConfirmDeleteModal = (customerId) => {
     setCustomerToDelete(customerId);
-    setIsConfirmDeleteModalOpen(true);
+    showModal({ id: 'confirmDelete', type: 'delete' });
   };
 
   const handleDeleteCustomer = () => {
     if (customerToDelete !== null) {
       deleteCustomer(customerToDelete);
       setCustomerToDelete(null);
-      setIsConfirmDeleteModalOpen(false);
+      hideModal('confirmDelete');
     }
   };
 
   const handleViewCustomer = (customer) => {
     setCustomerToView(customer);
-    setIsViewModalOpen(true);
+    showModal({ id: 'viewCustomer', type: 'view' });
   };
 
   const filteredCustomers = customers?.filter(
     (customer) =>
       (customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (filters.type === '' || customer.type === filters.type) &&
-      (filters.hasVat === '' || (filters.hasVat === 'si' && customer.vatNumber) || (filters.hasVat === 'no' && !customer.vatNumber))
+      (tableFilters.customers?.type === '' || customer.type === tableFilters.customers?.type) &&
+      (tableFilters.customers?.hasVat === '' || (tableFilters.customers?.hasVat === 'si' && customer.vatNumber) || (tableFilters.customers?.hasVat === 'no' && !customer.vatNumber))
   ) || [];
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setTableFilter('customers', { ...tableFilters.customers, [name]: value });
   };
 
   const applyFilters = () => {
-    setIsFilterModalOpen(false);
-    // La logica di filtraggio è già in filteredCustomers, non serve azione qui se non chiudere il modale
+    hideModal('filterCustomers');
   };
 
   const resetFilters = () => {
-    setFilters({ type: '', hasVat: '' });
-    setIsFilterModalOpen(false);
+    setTableFilter('customers', { type: '', hasVat: '' });
+    hideModal('filterCustomers');
   };
 
   return (
-    <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
+    <>
+    <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Clienti</h1>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => showModal({ id: 'addCustomer', type: 'add' })}
           className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -119,7 +129,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <button onClick={() => setIsFilterModalOpen(true)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md flex items-center gap-2 hover:bg-light-bg dark:hover:bg-dark-bg">
+            <button onClick={() => showModal({ id: 'filterCustomers', type: 'filter' })} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md flex items-center gap-2 hover:bg-light-bg dark:hover:bg-dark-bg">
               <Filter className="w-5 h-5" />
               Filtri
             </button>
@@ -174,12 +184,12 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
         </div>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen('addCustomer') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuovo Cliente</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('addCustomer')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -214,7 +224,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
+                <button type="button" onClick={() => hideModal('addCustomer')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
                   Annulla
                 </button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">
@@ -226,12 +236,12 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
         </div>
       )}
 
-      {isViewModalOpen && customerToView && (
+      {isModalOpen('viewCustomer') && customerToView && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Dettagli Cliente</h2>
-              <button onClick={() => setIsViewModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('viewCustomer')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -260,8 +270,8 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg"
+                onClick={() => hideModal('viewCustomer')}
+                className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md"
               >
                 Chiudi
               </button>
@@ -270,12 +280,12 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
         </div>
       )}
 
-      {isEditModalOpen && currentCustomer && (
+      {isModalOpen('editCustomer') && currentCustomer && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Modifica Cliente</h2>
-              <button onClick={() => { setIsEditModalOpen(false); setCurrentCustomer(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => { hideModal('editCustomer'); setCurrentCustomer(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -310,7 +320,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentCustomer(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
+                <button type="button" onClick={() => { hideModal('editCustomer'); setCurrentCustomer(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">
                   Annulla
                 </button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">
@@ -323,14 +333,14 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
       )}
 
       {/* Modal Conferma Eliminazione Cliente */}
-      {isConfirmDeleteModalOpen && (
+      {isModalOpen('confirmDelete') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Conferma Eliminazione</h2>
             <p className="mb-6 text-sm text-gray-600 dark:text-gray-300">Sei sicuro di voler eliminare questo cliente? L'azione è irreversibile.</p>
             <div className="flex justify-end gap-3">
               <button 
-                onClick={() => setIsConfirmDeleteModalOpen(false)} 
+                onClick={() => hideModal('confirmDelete')} 
                 className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg"
               >
                 Annulla
@@ -347,19 +357,19 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
       )}
 
       {/* Modal Filtri Cliente */}
-      {isFilterModalOpen && (
+      {isModalOpen('filterCustomers') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Filtra Clienti</h2>
-              <button onClick={() => setIsFilterModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('filterCustomers')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
                 <label htmlFor="filter-type" className="block text-sm font-medium mb-1">Tipo Cliente</label>
-                <select name="type" id="filter-type" value={filters.type} onChange={handleFilterChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary">
+                <select name="type" id="filter-type" value={tableFilters.customers?.type || ''} onChange={handleFilterChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary">
                   <option value="">Tutti</option>
                   <option value="Privato">Privato</option>
                   <option value="Azienda">Azienda</option>
@@ -367,7 +377,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
               </div>
               <div>
                 <label htmlFor="filter-hasVat" className="block text-sm font-medium mb-1">Partita IVA</label>
-                <select name="hasVat" id="filter-hasVat" value={filters.hasVat} onChange={handleFilterChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary">
+                <select name="hasVat" id="filter-hasVat" value={tableFilters.customers?.hasVat || ''} onChange={handleFilterChange} className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary">
                   <option value="">Tutti</option>
                   <option value="si">Con Partita IVA</option>
                   <option value="no">Senza Partita IVA</option>
@@ -386,6 +396,7 @@ const CustomersPage = ({ customers, setCustomers, addCustomer, updateCustomer, d
         </div>
       )}
     </div>
+    </>
   );
 };
 

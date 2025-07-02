@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, Edit, Trash, Search, Plus, Filter, X, Download, Send, Printer, FileCheck2, AlertTriangle, Clock } from 'lucide-react';
+import useUI from '../hooks/useUI';
+import { useData } from '../hooks/useData';
 
-const InvoicesPage = ({ 
-  invoices: initialInvoices, 
-  setInvoices: setAppInvoices, 
-  customers, 
-  projects, 
-  quotes, 
-  onNavigate,
-  addInvoice,
-  updateInvoice,
-  deleteInvoice
-}) => {
-  const [invoices, setInvoices] = useState(initialInvoices || []);
+const InvoicesPage = () => {
+  const { 
+    isModalOpen, 
+    showModal, 
+    hideModal, 
+    setBreadcrumbs 
+  } = useUI();
+  const { invoices, customers, projects, quotes, addInvoice, updateInvoice, deleteInvoice } = useData();
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: 'Fatture' }]);
+  }, [setBreadcrumbs]);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredInvoices, setFilteredInvoices] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [invoiceToView, setInvoiceToView] = useState(null);
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-  const [invoiceToDeleteId, setInvoiceToDeleteId] = useState(null);
 
   const [newInvoice, setNewInvoice] = useState({
     // invoiceNumber: '', // Removed: Will be auto-generated
@@ -36,9 +33,7 @@ const InvoicesPage = ({
     paymentDetails: '',
   });
 
-  useEffect(() => {
-    setInvoices(initialInvoices || []);
-  }, [initialInvoices]);
+
 
   const generateInvoiceNumber = (date) => {
     const year = new Date(date).getFullYear();
@@ -51,7 +46,7 @@ const InvoicesPage = ({
     return `FATT-${year}-${String(nextNum).padStart(3, '0')}`;
   };
 
-  useEffect(() => {
+  const filteredInvoices = React.useMemo(() => {
     let invoicesToDisplay = invoices || [];
     if (searchTerm) {
       invoicesToDisplay = invoicesToDisplay.filter(
@@ -62,7 +57,7 @@ const InvoicesPage = ({
           (invoice.invoiceNumber && typeof invoice.invoiceNumber === 'string' && invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
-    setFilteredInvoices(invoicesToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    return invoicesToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [searchTerm, invoices, customers]);
 
   const calculateItemTotal = (item) => {
@@ -107,7 +102,7 @@ const InvoicesPage = ({
       quoteId: newInvoice.quoteId ? parseInt(newInvoice.quoteId) : null,
     };
     addInvoice(invoiceToAdd);
-    setIsModalOpen(false);
+    hideModal('addInvoice');
     setNewInvoice({
       // invoiceNumber: '', // Removed
       date: new Date().toISOString().split('T')[0],
@@ -128,7 +123,7 @@ const InvoicesPage = ({
       date: invoice.date ? new Date(invoice.date).toISOString().split('T')[0] : '',
       dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
     });
-    setIsEditModalOpen(true);
+    showModal({ id: 'editInvoice', type: 'edit' });
   };
 
   const handleCurrentInvoiceItemChange = (index, field, value) => {
@@ -150,26 +145,26 @@ const InvoicesPage = ({
     e.preventDefault();
     const updatedInvoice = { ...currentInvoice, total: calculateInvoiceTotal(currentInvoice.items) };
     updateInvoice(currentInvoice.id, updatedInvoice);
-    setIsEditModalOpen(false);
+    hideModal('editInvoice');
     setCurrentInvoice(null);
   };
 
   const openConfirmDeleteModal = (invoiceId) => {
-    setInvoiceToDeleteId(invoiceId);
-    setIsConfirmDeleteModalOpen(true);
+    setCurrentInvoice({ id: invoiceId });
+    showModal({ id: 'deleteInvoice', type: 'delete' });
   };
 
   const handleDeleteInvoice = () => {
-    if (invoiceToDeleteId) {
-      deleteInvoice(invoiceToDeleteId);
-      setIsConfirmDeleteModalOpen(false);
-      setInvoiceToDeleteId(null);
+    if (currentInvoice?.id) {
+      deleteInvoice(currentInvoice.id);
+      hideModal('deleteInvoice');
+      setCurrentInvoice(null);
     }
   };
 
   const handleViewInvoice = (invoice) => {
     setInvoiceToView(invoice);
-    setIsViewModalOpen(true);
+    showModal({ id: 'viewInvoice', type: 'view' });
   };
   
   const getStatusPill = (status) => {
@@ -192,7 +187,7 @@ const InvoicesPage = ({
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Fatture</h1>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => showModal({ id: 'addInvoice', type: 'add' })}
           className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -267,12 +262,12 @@ const InvoicesPage = ({
       </div>
 
       {/* Modal Aggiungi Fattura */}
-      {isModalOpen && (
+      {isModalOpen('addInvoice') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Nuova Fattura</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => hideModal('addInvoice')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -373,7 +368,7 @@ const InvoicesPage = ({
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => hideModal('addInvoice')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Crea Fattura</button>
               </div>
             </form>
@@ -382,12 +377,12 @@ const InvoicesPage = ({
       )}
 
       {/* Modal Modifica Fattura */}
-      {isEditModalOpen && currentInvoice && (
+      {isModalOpen('editInvoice') && currentInvoice && (
          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Modifica Fattura: {currentInvoice.invoiceNumber}</h2>
-              <button onClick={() => { setIsEditModalOpen(false); setCurrentInvoice(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+              <button onClick={() => { hideModal('editInvoice'); setCurrentInvoice(null); }} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -487,7 +482,7 @@ const InvoicesPage = ({
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => { setIsEditModalOpen(false); setCurrentInvoice(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
+                <button type="button" onClick={() => { hideModal('editInvoice'); setCurrentInvoice(null); }} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
                 <button type="submit" className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md">Salva Modifiche</button>
               </div>
             </form>
@@ -496,15 +491,12 @@ const InvoicesPage = ({
       )}
 
       {/* Modal Visualizza Fattura */}
-      {isViewModalOpen && invoiceToView && (
+      {isModalOpen('viewInvoice') && invoiceToView && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-8 w-full max-w-3xl my-8">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-light-primary dark:text-dark-primary">Fattura #{invoiceToView.invoiceNumber}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Data: {new Date(invoiceToView.date).toLocaleDateString('it-IT')} - Scadenza: {invoiceToView.dueDate ? new Date(invoiceToView.dueDate).toLocaleDateString('it-IT') : 'N/D'}</p>
-              </div>
-              <button onClick={() => setIsViewModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
+          <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-4xl my-8">
+            <div className="flex justify-between items-center mb-4 border-b border-light-border dark:border-dark-border pb-4">
+              <h2 className="text-2xl font-bold">Fattura #{invoiceToView.invoiceNumber}</h2>
+              <button onClick={() => hideModal('viewInvoice')} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -595,21 +587,14 @@ const InvoicesPage = ({
         </div>
       )}
 
-      {/* Modal Conferma Eliminazione Fattura */}
-      {isConfirmDeleteModalOpen && (
+      {/* Modal Conferma Eliminazione */}
+      {isModalOpen('deleteInvoice') && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Conferma Eliminazione</h2>
-              <button onClick={() => setIsConfirmDeleteModalOpen(false)} className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="mb-6 text-light-text dark:text-dark-text">
-              Sei sicuro di voler eliminare questa fattura? L'azione è irreversibile.
-            </p>
+          <div className="bg-white dark:bg-dark-card rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h2 className="text-xl font-semibold mb-4">Conferma Eliminazione</h2>
+            <p className="mb-6">Sei sicuro di voler eliminare questa fattura? L'azione è irreversibile.</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setIsConfirmDeleteModalOpen(false)} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg text-light-text dark:text-dark-text">Annulla</button>
+              <button onClick={() => hideModal('deleteInvoice')} className="px-4 py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg">Annulla</button>
               <button onClick={handleDeleteInvoice} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">Elimina</button>
             </div>
           </div>

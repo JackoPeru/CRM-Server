@@ -1,22 +1,17 @@
 import React from 'react';
 import { Menu, User, Settings, LogOut, Wifi, WifiOff, RefreshCw, UserCircle } from 'lucide-react';
 import Icon from '../common/Icon';
+import useUI from '../../hooks/useUI';
 
-const Header = ({
-  toggleDarkMode,
-  darkMode = false,
-  currentPage = 'dashboard',
-  navItems = [],
-  onOpenSidebar,
-  syncStatus = 'idle',
-  isOnline = true,
-  networkMode = 'standalone',
-}) => {
+const Header = () => {
+  const { theme, toggleTheme, userPreferences } = useUI();
+  const darkMode = theme === 'dark';
+  
   // Trova l'etichetta della pagina corrente con gestione fallback
   const currentPageLabel = React.useMemo(() => {
-    const currentItem = navItems.find((n) => n.id === currentPage);
-    return currentItem?.label || currentPage.charAt(0).toUpperCase() + currentPage.slice(1);
-  }, [currentPage, navItems]);
+    const currentPage = userPreferences.currentPage || 'dashboard';
+    return currentPage.charAt(0).toUpperCase() + currentPage.slice(1);
+  }, [userPreferences.currentPage]);
 
   return (
     <header 
@@ -25,51 +20,24 @@ const Header = ({
     >
       <div className="h-16 px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {onOpenSidebar && (
-            <button
-              onClick={onOpenSidebar}
-              className="md:hidden text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              aria-label="Apri menu laterale"
-              type="button"
-            >
-              <Icon name={Menu} size={24} />
-            </button>
-          )}
           <h1 className="text-xl font-semibold text-gray-800 dark:text-white capitalize">
             {currentPageLabel}
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Indicatore stato sincronizzazione */}
-          {networkMode !== 'standalone' && (
-            <div className="flex items-center gap-1 px-2 py-1 rounded-md text-xs" title={`Modalità: ${networkMode} - Stato: ${syncStatus}`}>
-              {syncStatus === 'syncing' ? (
-                <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
-              ) : isOnline ? (
-                <Wifi className="w-4 h-4 text-green-500" />
-              ) : (
-                <WifiOff className="w-4 h-4 text-red-500" />
-              )}
-              <span className={`${syncStatus === 'syncing' ? 'text-blue-600' : isOnline ? 'text-green-600' : 'text-red-600'} dark:text-gray-300`}>
-                {syncStatus === 'syncing' ? 'Sincronizzazione...' : networkMode === 'client' ? (isOnline ? 'Connesso' : 'Disconnesso') : 'Master'}
-              </span>
-            </div>
-          )}
           
-          {typeof toggleDarkMode === 'function' && (
-            <button
-              onClick={toggleDarkMode}
-              type="button"
-              className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${darkMode ? 'bg-indigo-600 focus:ring-indigo-500' : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400'}`}
-              aria-label={darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}
-            >
-              <span className="sr-only">{darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}</span>
-              <span
-                className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-          )}
+          <button
+            onClick={toggleTheme}
+            type="button"
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${darkMode ? 'bg-indigo-600 focus:ring-indigo-500' : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400'}`}
+            aria-label={darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}
+          >
+            <span className="sr-only">{darkMode ? 'Attiva modalità chiara' : 'Attiva modalità scura'}</span>
+            <span
+              className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
+            />
+          </button>
           <button 
             className="flex items-center p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
             aria-label="Menu utente"

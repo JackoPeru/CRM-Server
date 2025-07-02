@@ -4,14 +4,18 @@ import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import DashboardStats from '../components/DashboardStats';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import useUI from '../hooks/useUI';
+import { useData } from '../hooks/useData';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const DashboardPage = ({ currentUser, onNavigate, customers, projects: initialProjects, setProjects: setAllProjects }) => {
-  const [projects, setProjects] = useState(initialProjects);
+const DashboardPage = () => {
+  const { setBreadcrumbs } = useUI();
+  const { customers, projects, updateProject, deleteProject } = useData();
+
   useEffect(() => {
-    setProjects(initialProjects);
-  }, [initialProjects]);
+    setBreadcrumbs([{ label: 'Dashboard' }]);
+  }, [setBreadcrumbs]);
 
   const [isViewProjectModalOpen, setIsViewProjectModalOpen] = useState(false);
   const [projectToView, setProjectToView] = useState(null);
@@ -53,38 +57,25 @@ const DashboardPage = ({ currentUser, onNavigate, customers, projects: initialPr
     setEditingNote(null);
     setEditText('');
   };
-  // Calcola le statistiche dai dati reali
+
   const stats = {
     customers: customers?.length || 0,
     projects: projects?.length || 0,
     projectsInProgress: projects?.filter(p => p.status === 'In Corso').length || 0,
-    materials: 0, // Placeholder, da implementare se necessario
-    revenue: '€ 0.00', // Placeholder, da implementare
+    materials: 0, // Placeholder
+    revenue: '€ 0.00', // Placeholder
   };
 
-  // Filtra i progetti in scadenza (es. nei prossimi 7 giorni)
-  // Questa è una logica di esempio, da affinare con date reali
   const handleViewProject = (project) => {
     setProjectToView(project);
     setIsViewProjectModalOpen(true);
   };
 
   const handleCompleteProject = (projectId) => {
-    // Aggiorna lo stato globale dei progetti e quello locale della dashboard
-    const updatedProjects = initialProjects.map(p => 
-      p.id === projectId ? { ...p, status: 'Completato' } : p
-    );
-    setAllProjects(updatedProjects); // Aggiorna lo stato in App.jsx
-    // Filtra anche dalla visualizzazione locale immediatamente
-    setProjects(projects.filter(p => p.id !== projectId)); 
+    updateProject(projectId, { status: 'Completato' });
   };
 
-  const expiringProjects = projects?.filter(p => {
-    // Logica di esempio per determinare se un progetto è in scadenza
-    // Qui si potrebbe confrontare p.deadline con la data attuale
-    // Per ora, mostriamo tutti i progetti non completati come "in scadenza"
-    return p.status !== 'Completato';
-  }) || [];
+  const expiringProjects = projects?.filter(p => p.status !== 'Completato') || [];
 
   // Prepara i dati per il grafico a torta dagli stati dei progetti reali
   const projectStatusCounts = projects?.reduce((acc, project) => {
@@ -176,10 +167,10 @@ const DashboardPage = ({ currentUser, onNavigate, customers, projects: initialPr
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
-      <WelcomeHeader userName={currentUser?.displayName || 'Utente'} />
+      <WelcomeHeader userName={'Utente'} />
 
       {/* Sezione Statistiche Interattive */}
-      <DashboardStats stats={stats} onNavigate={onNavigate} />
+      <DashboardStats stats={stats} />
 
       {/* Colonna Appunti Rapidi - Spostata in alto e a larghezza piena */}
       <div className="bg-white dark:bg-dark-card p-6 rounded-lg shadow-sm col-span-1 lg:col-span-3">

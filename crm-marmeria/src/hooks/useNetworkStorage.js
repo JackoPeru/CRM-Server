@@ -22,6 +22,7 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'error'
   const [data, setData] = useState(localStorageHook.data);
+  const [lastUpdate, setLastUpdate] = useState(null);
   
   // Monitora lo stato della connessione internet
   useEffect(() => {
@@ -41,6 +42,57 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
   useEffect(() => {
     setData(localStorageHook.data);
   }, [localStorageHook.data]);
+
+  // Gestione WebSocket per aggiornamenti in tempo reale
+  useEffect(() => {
+    if (currentNetworkPrefs.mode !== 'client' || !currentNetworkPrefs.masterPath) {
+      return;
+    }
+
+    const wsUrl = `ws://${currentNetworkPrefs.masterPath.split(':')[0]}:3001`;
+    let ws;
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('Connesso al WebSocket del server master');
+          setInternalNetworkPrefs(prev => ({ ...prev, connectionStatus: 'connected' }));
+        };
+
+        ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === 'update') {
+            console.log('Ricevuto aggiornamento dal master, avvio sincronizzazione...');
+            setLastUpdate(message.lastModified);
+            syncWithMaster();
+          }
+        };
+
+        ws.onclose = () => {
+          console.log('Disconnesso dal WebSocket, tento di riconnettermi in 5 secondi...');
+          setInternalNetworkPrefs(prev => ({ ...prev, connectionStatus: 'disconnected' }));
+          setTimeout(connect, 5000);
+        };
+
+        ws.onerror = (error) => {
+          console.error('Errore WebSocket:', error);
+          ws.close();
+        };
+      } catch (error) {
+        console.error('Impossibile connettersi al WebSocket:', error);
+      }
+    };
+
+    connect();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [currentNetworkPrefs.mode, currentNetworkPrefs.masterPath]);
 
   // Auto-sync per modalità client
   useEffect(() => {
@@ -229,6 +281,7 @@ const useNetworkStorage = (collectionName, networkPrefs = null) => {
     syncWithMaster,
     isOnline,
     lastSync: currentNetworkPrefs.lastSync,
+    lastUpdate,
   };
 };
 

@@ -27,7 +27,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     // Preferences management
     saveNetworkPrefs: (networkPrefs) => 
-      ipcRenderer.invoke('save-network-prefs', networkPrefs)
+      ipcRenderer.invoke('save-network-prefs', networkPrefs),
+    
+    // Backup management in shared folder
+    saveBackupToSharedFolder: (backupData, filename) => 
+      ipcRenderer.invoke('save-backup-to-shared', backupData, filename),
+    
+    loadBackupFromSharedFolder: (filename) => 
+      ipcRenderer.invoke('load-backup-from-shared', filename),
+    
+    listBackupsInSharedFolder: () => 
+      ipcRenderer.invoke('list-backups-in-shared')
   }
 });
 

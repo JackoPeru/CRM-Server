@@ -1,5 +1,5 @@
 import React from 'react';
-import * as Lucide from 'lucide-react';
+import { HelpCircle, AlertTriangle } from 'lucide-react';
 
 const Icon = ({ name, size, color = 'currentColor', className = '', ...rest }) => {
   try {
@@ -27,9 +27,10 @@ const Icon = ({ name, size, color = 'currentColor', className = '', ...rest }) =
       });
     }
 
-    // Se name è una stringa, cerca il componente in Lucide
-    if (typeof name === 'string' && Lucide[name]) {
-      return React.createElement(Lucide[name], {
+    // Se name è una stringa, usa HelpCircle come fallback
+    if (typeof name === 'string') {
+      console.warn(`Icon "${name}" not found, using fallback icon (HelpCircle)`);
+      return React.createElement(HelpCircle, {
         size: iconSize,
         color,
         className: `inline-block ${className}`.trim(),
@@ -40,7 +41,7 @@ const Icon = ({ name, size, color = 'currentColor', className = '', ...rest }) =
 
     // Fallback a HelpCircle se l'icona non viene trovata
     console.warn(`Icon "${name}" not found, using fallback icon (HelpCircle)`);
-    return React.createElement(Lucide.HelpCircle, {
+    return React.createElement(HelpCircle, {
       size: iconSize,
       color,
       className: `inline-block ${className}`.trim(),
@@ -50,7 +51,7 @@ const Icon = ({ name, size, color = 'currentColor', className = '', ...rest }) =
   } catch (error) {
     console.error(`Error rendering icon:`, error);
     // Fallback in caso di errore
-    return React.createElement(Lucide.AlertTriangle, {
+    return React.createElement(AlertTriangle, {
       size: 24,
       color: 'red',
       className: `inline-block ${className}`.trim(),

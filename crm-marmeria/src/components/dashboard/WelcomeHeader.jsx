@@ -1,6 +1,9 @@
 import React from 'react';
+import { useAuth } from '../../hooks/useAuth';
 
-const WelcomeHeader = ({ userName = 'Utente' }) => {
+const WelcomeHeader = () => {
+  const { currentUser } = useAuth();
+  const userName = currentUser?.name || 'Utente';
   const formattedName = userName.trim() || 'Utente';
   const currentHour = new Date().getHours();
   

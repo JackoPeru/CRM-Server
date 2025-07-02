@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Upload, AlertTriangle, CheckCircle, FileText, Database } from 'lucide-react';
 
 const DataManager = () => {
@@ -6,7 +6,38 @@ const DataManager = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [exportStatus, setExportStatus] = useState(null);
   const [importStatus, setImportStatus] = useState(null);
+  const [availableBackups, setAvailableBackups] = useState([]);
+  
+  // Ottieni le preferenze di rete per verificare se c'è una cartella condivisa
+  const getNetworkPrefs = () => {
+    try {
+      return JSON.parse(localStorage.getItem('networkPrefs') || '{}');
+    } catch {
+      return {};
+    }
+  };
 
+  // Funzione per caricare i backup disponibili dalla cartella condivisa
+  const loadAvailableBackups = async () => {
+    const networkPrefs = getNetworkPrefs();
+    
+    if (window.electronAPI && networkPrefs.sharedPath) {
+      try {
+        const result = await window.electronAPI.network.listBackupsInSharedFolder();
+        if (result.success) {
+          setAvailableBackups(result.files);
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento dei backup:', error);
+      }
+    }
+  };
+  
+  // Carica i backup disponibili all'avvio
+  useEffect(() => {
+    loadAvailableBackups();
+  }, []);
+  
   // Funzione per esportare tutti i dati
   const exportData = async () => {
     setIsExporting(true);
@@ -20,48 +51,129 @@ const DataManager = () => {
         materials: JSON.parse(localStorage.getItem('materials') || '[]'),
         invoices: JSON.parse(localStorage.getItem('invoices') || '[]'),
         quotes: JSON.parse(localStorage.getItem('quotes') || '[]'),
-        // Includi anche le impostazioni
         settings: {
-          darkMode: localStorage.getItem('darkMode'),
-          notificationPrefs: localStorage.getItem('notificationPrefs'),
-          dataPrefs: localStorage.getItem('dataPrefs'),
-          formattingPrefs: localStorage.getItem('formattingPrefs'),
-          fiscalPrefs: localStorage.getItem('fiscalPrefs'),
-          printPrefs: localStorage.getItem('printPrefs'),
-          networkPrefs: localStorage.getItem('networkPrefs')
+          companyInfo: JSON.parse(localStorage.getItem('companyInfo') || '{}'),
+          invoiceSettings: JSON.parse(localStorage.getItem('invoiceSettings') || '{}'),
+          quoteSettings: JSON.parse(localStorage.getItem('quoteSettings') || '{}'),
+          materialCategories: JSON.parse(localStorage.getItem('materialCategories') || '[]'),
+          workCategories: JSON.parse(localStorage.getItem('workCategories') || '[]'),
+          networkPrefs: JSON.parse(localStorage.getItem('networkPrefs') || '{}')
         },
         exportDate: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0'
       };
-
-      // Crea il file JSON
+      
+      const filename = `crm-marmeria-backup-${new Date().toISOString().split('T')[0]}.json`;
+      const networkPrefs = getNetworkPrefs();
+      
+      // Se c'è una cartella condivisa configurata e siamo in Electron, salva lì
+      if (window.electronAPI && networkPrefs.sharedPath) {
+        const result = await window.electronAPI.network.saveBackupToSharedFolder(allData, filename);
+        if (result.success) {
+          setExportStatus({ type: 'success', message: `Backup salvato nella cartella condivisa: ${result.path}` });
+          loadAvailableBackups(); // Ricarica la lista dei backup
+          return;
+        } else {
+          console.warn('Fallback al download del browser:', result.error);
+        }
+      }
+      
+      // Fallback: download del browser
       const dataStr = JSON.stringify(allData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       
-      // Crea il link per il download
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `crm-marmeria-backup-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = filename;
       
-      // Simula il click per scaricare
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Pulisce l'URL
       URL.revokeObjectURL(url);
       
-      setExportStatus({ type: 'success', message: 'Dati esportati con successo!' });
+      setExportStatus({ type: 'success', message: 'Backup esportato con successo!' });
     } catch (error) {
       console.error('Errore durante l\'esportazione:', error);
-      setExportStatus({ type: 'error', message: 'Errore durante l\'esportazione: ' + error.message });
+      setExportStatus({ type: 'error', message: 'Errore durante l\'esportazione dei dati' });
     } finally {
       setIsExporting(false);
     }
   };
 
-  // Funzione per importare i dati
+  // Funzione per importare backup dalla cartella condivisa
+  const importFromSharedFolder = async (filename) => {
+    setIsImporting(true);
+    setImportStatus(null);
+    
+    try {
+      const result = await window.electronAPI.network.loadBackupFromSharedFolder(filename);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      await processImportedData(result.data);
+      setImportStatus({ type: 'success', message: `Backup "${filename}" importato con successo dalla cartella condivisa!` });
+    } catch (error) {
+      console.error('Errore durante l\'importazione:', error);
+      setImportStatus({ type: 'error', message: 'Errore durante l\'importazione: ' + error.message });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+  
+  // Funzione per processare i dati importati
+  const processImportedData = async (importedData, skipConfirm = false) => {
+    // Verifica la struttura del file
+    if (!importedData.version || !importedData.exportDate) {
+      throw new Error('File di backup non valido o corrotto');
+    }
+    
+    // Conferma prima di sovrascrivere (solo se non è stato saltato)
+    if (!skipConfirm) {
+      const confirmImport = window.confirm(
+        `Sei sicuro di voler importare i dati dal backup del ${new Date(importedData.exportDate).toLocaleDateString()}?\n\n` +
+        'ATTENZIONE: Questa operazione sovrascriverà tutti i dati attuali!\n\n' +
+        'Si consiglia di fare un backup dei dati attuali prima di procedere.'
+      );
+
+      if (!confirmImport) {
+        throw new Error('Importazione annullata dall\'utente');
+      }
+    }
+    
+    // Importa i dati principali
+    if (importedData.customers) {
+      localStorage.setItem('customers', JSON.stringify(importedData.customers));
+    }
+    if (importedData.projects) {
+      localStorage.setItem('projects', JSON.stringify(importedData.projects));
+    }
+    if (importedData.materials) {
+      localStorage.setItem('materials', JSON.stringify(importedData.materials));
+    }
+    if (importedData.invoices) {
+      localStorage.setItem('invoices', JSON.stringify(importedData.invoices));
+    }
+    if (importedData.quotes) {
+      localStorage.setItem('quotes', JSON.stringify(importedData.quotes));
+    }
+    
+    // Importa le impostazioni
+    if (importedData.settings) {
+      Object.keys(importedData.settings).forEach(key => {
+        if (importedData.settings[key] !== null && importedData.settings[key] !== undefined) {
+          localStorage.setItem(key, JSON.stringify(importedData.settings[key]));
+        }
+      });
+    }
+    
+    // Ricarica la pagina per applicare le modifiche
+    window.location.reload();
+  };
+
+  // Funzione per importare i dati da file
   const importData = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -72,61 +184,14 @@ const DataManager = () => {
     try {
       const fileContent = await file.text();
       const importedData = JSON.parse(fileContent);
-
-      // Verifica la struttura del file
-      if (!importedData.version || !importedData.exportDate) {
-        throw new Error('File di backup non valido o corrotto');
-      }
-
-      // Conferma prima di sovrascrivere
-      const confirmImport = window.confirm(
-        `Sei sicuro di voler importare i dati dal backup del ${new Date(importedData.exportDate).toLocaleDateString()}?\n\n` +
-        'ATTENZIONE: Questa operazione sovrascriverà tutti i dati attuali!\n\n' +
-        'Si consiglia di fare un backup dei dati attuali prima di procedere.'
-      );
-
-      if (!confirmImport) {
-        setIsImporting(false);
-        return;
-      }
-
-      // Importa i dati delle collezioni
-      const collections = ['customers', 'projects', 'materials', 'invoices', 'quotes'];
-      let importedCount = 0;
-
-      collections.forEach(collection => {
-        if (importedData[collection] && Array.isArray(importedData[collection])) {
-          localStorage.setItem(collection, JSON.stringify(importedData[collection]));
-          importedCount += importedData[collection].length;
-        }
-      });
-
-      // Importa le impostazioni se presenti
-      if (importedData.settings) {
-        Object.entries(importedData.settings).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
-            localStorage.setItem(key, value);
-          }
-        });
-      }
-
-      setImportStatus({ 
-        type: 'success', 
-        message: `Dati importati con successo! ${importedCount} elementi ripristinati.\n\nRicarica la pagina per vedere i cambiamenti.` 
-      });
-
-      // Ricarica la pagina dopo 3 secondi
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
-
+      
+      await processImportedData(importedData);
+      setImportStatus({ type: 'success', message: 'Dati importati con successo!' });
     } catch (error) {
       console.error('Errore durante l\'importazione:', error);
       setImportStatus({ type: 'error', message: 'Errore durante l\'importazione: ' + error.message });
     } finally {
       setIsImporting(false);
-      // Reset del file input
-      event.target.value = '';
     }
   };
 
@@ -249,6 +314,51 @@ const DataManager = () => {
             </div>
           )}
         </div>
+
+        {/* Sezione Backup dalla Cartella Condivisa */}
+        {getNetworkPrefs().sharedPath && window.electronAPI && (
+          <div className="border-b border-gray-200 dark:border-gray-600 pb-6">
+            <h4 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3 flex items-center">
+              <Database size={20} className="mr-2 text-green-500" /> Backup dalla Cartella Condivisa
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Backup disponibili nella cartella condivisa: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{getNetworkPrefs().sharedPath}</code>
+            </p>
+            
+            <div className="space-y-2">
+              {availableBackups.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  Nessun backup trovato nella cartella condivisa
+                </p>
+              ) : (
+                availableBackups.map((backup, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{backup.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {new Date(backup.modified).toLocaleString()} • {(backup.size / 1024).toFixed(1)} KB
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => importFromSharedFolder(backup.name)}
+                      disabled={isImporting}
+                      className="ml-4 px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded text-sm transition-colors"
+                    >
+                      {isImporting ? 'Importando...' : 'Importa'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <button
+              onClick={loadAvailableBackups}
+              className="mt-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+            >
+              Aggiorna Lista
+            </button>
+          </div>
+        )}
 
         {/* Sezione Cancellazione Dati */}
         <div>

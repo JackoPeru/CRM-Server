@@ -1,5 +1,5 @@
-import React from 'react';
-import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer, Network, Server, Wifi } from 'lucide-react'; // Icone per le sezioni
+import React, { useState, useEffect } from 'react';
+import { User, Bell, Globe, Palette, Sun, Moon, CalendarDays, Euro, DollarSign, PoundSterling, FileDigit, Printer, Database } from 'lucide-react'; // Icone per le sezioni
 
 // Componente Switch personalizzato con animazione
 const AnimatedSwitch = ({ id, checked, onChange, label }) => {
@@ -33,191 +33,117 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
   );
 };
 
-import { Database } from 'lucide-react'; // Importa l'icona per le preferenze dati
-import { useState, useEffect } from 'react';
+
 import DataManager from '../components/DataManager';
+import useUI from '../hooks/useUI';
+import { useData } from '../hooks/useData';
 
-const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotificationPref, dataPrefs, updateDataPref, formattingPrefs, updateFormattingPref, fiscalPrefs, updateFiscalPref, printPrefs, updatePrintPref, networkPrefs, updateNetworkPref }) => {
-  const [serverStatus, setServerStatus] = useState({ isRunning: false, port: null });
+const SettingsPage = () => {
+  const { theme, userPreferences, changeTheme, updatePreferences, showNotification } = useUI();
+  const { dataState, updateUser } = useData();
 
-  // Carica lo stato del server all'avvio
+  const { user } = dataState;
+  
+  // Stato locale per le preferenze UI
+  const [uiPrefs, setUiPrefs] = useState({
+    darkMode: theme === 'dark',
+    notificationPrefs: userPreferences.notifications || {},
+    formattingPrefs: userPreferences.formatting || { dateFormat: 'DD/MM/YYYY', currencySymbol: '€' },
+    fiscalPrefs: userPreferences.fiscal || { vatNumber: '', taxCode: '', defaultTaxRate: 22 },
+    printPrefs: userPreferences.print || { logoUrl: '', printHeader: true, printFooter: true }
+  });
+  
+  const { darkMode, notificationPrefs, formattingPrefs, fiscalPrefs, printPrefs } = uiPrefs;
+
+  // Stato locale per le preferenze dati
+  const [dataPrefs, setDataPrefs] = useState({
+    customerCodePrefix: 'CLI-',
+    projectCodePrefix: 'PRJ-'
+  });
+
+  // Funzioni per aggiornare le preferenze
+  const updateDataPref = (key, value) => {
+    setDataPrefs(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateFormattingPref = (key, value) => {
+    const newFormattingPrefs = { ...formattingPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, formattingPrefs: newFormattingPrefs }));
+    updatePreferences({ formatting: newFormattingPrefs });
+  };
+
+  const updateFiscalPref = (key, value) => {
+    const newFiscalPrefs = { ...fiscalPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, fiscalPrefs: newFiscalPrefs }));
+    updatePreferences({ fiscal: newFiscalPrefs });
+  };
+
+  const updatePrintPref = (key, value) => {
+    const newPrintPrefs = { ...printPrefs, [key]: value };
+    setUiPrefs(prev => ({ ...prev, printPrefs: newPrintPrefs }));
+    updatePreferences({ print: newPrintPrefs });
+  };
+
+  // Funzioni mancanti per l'interfaccia
+  const toggleDarkMode = () => {
+    const newTheme = darkMode ? 'light' : 'dark';
+    changeTheme(newTheme);
+    setUiPrefs(prev => ({ ...prev, darkMode: !darkMode }));
+  };
+
+  const toggleNotificationPref = (key) => {
+    const newNotificationPrefs = { ...notificationPrefs, [key]: !notificationPrefs[key] };
+    setUiPrefs(prev => ({ ...prev, notificationPrefs: newNotificationPrefs }));
+    updatePreferences({ notifications: newNotificationPrefs });
+  };
+
+
+
+  // Stato per i dati del profilo utente
+  const [userProfile, setUserProfile] = useState({
+    username: '',
+    email: ''
+  });
+
+  // Carica i dati del profilo utente dallo stato Redux
   useEffect(() => {
-    const loadServerInfo = async () => {
-      try {
-        // Verifica se electronAPI è disponibile
-        if (window.electronAPI && window.electronAPI.network) {
-          const status = await window.electronAPI.network.getServerStatus();
-          setServerStatus(status);
-        } else {
-          console.log('ElectronAPI non disponibile - modalità browser');
-        }
-      } catch (error) {
-        console.error('Errore caricamento info server:', error);
-      }
-    };
-    
-    loadServerInfo();
-    
-    // Controlla lo stato del server ogni 5 secondi se siamo in modalità master
-    const interval = setInterval(() => {
-      if (networkPrefs.mode === 'master' && window.electronAPI && window.electronAPI.network) {
-        loadServerInfo();
-      }
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [networkPrefs.mode]);
-
-  const handleTestConnection = async () => {
-    if (networkPrefs.mode !== 'client') return;
-    
-    try {
-      // Verifica se electronAPI è disponibile
-      if (!window.electronAPI || !window.electronAPI.network) {
-        // Simulazione per il browser - solo per test UI
-        console.log('🌐 Modalità browser: simulazione test connessione');
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ [SIMULAZIONE BROWSER] Connessione riuscita!\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
-        return;
-      }
-      
-      const result = await window.electronAPI.network.testMasterConnection(
-        networkPrefs.masterPath
-      );
-      
-      if (result.success) {
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ Connessione al PC master riuscita!');
-      } else {
-        updateNetworkPref('connectionStatus', 'disconnected');
-        alert('❌ Connessione fallita: ' + (result.error || 'Percorso non accessibile'));
-      }
-    } catch (error) {
-      console.error('Errore test connessione:', error);
-      alert('❌ Errore durante il test: ' + error.message);
+    if (user) {
+      setUserProfile({
+        username: user.name || 'Mario Rossi',
+        email: user.email || 'mario.rossi@example.com'
+      });
     }
+  }, [user]);
+
+  // Sincronizza le preferenze UI con lo stato globale
+  useEffect(() => {
+    setUiPrefs(prev => ({
+      ...prev,
+      darkMode: theme === 'dark',
+      notificationPrefs: userPreferences.notifications || {},
+      formattingPrefs: userPreferences.formatting || { dateFormat: 'DD/MM/YYYY', currencySymbol: '€' },
+      fiscalPrefs: userPreferences.fiscal || { vatNumber: '', taxCode: '', defaultTaxRate: 22 },
+      printPrefs: userPreferences.print || { logoUrl: '', printHeader: true, printFooter: true }
+    }));
+  }, [theme, userPreferences]);
+
+
+
+  // Funzione per salvare il profilo utente
+  const saveUserProfile = () => {
+    updateUser(userProfile);
+    alert('Profilo utente salvato con successo!');
   };
 
-  const handleSyncNow = async () => {
-    if (networkPrefs.mode !== 'client') return;
-    
-    try {
-      // Verifica se electronAPI è disponibile
-      if (!window.electronAPI || !window.electronAPI.network) {
-        // Simulazione per il browser - solo per test UI
-        console.log('🌐 Modalità browser: simulazione sincronizzazione');
-        updateNetworkPref('lastSync', new Date().toISOString());
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ [SIMULAZIONE BROWSER] Sincronizzazione completata!\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
-        return;
-      }
-      
-      const collections = ['customers', 'projects', 'materials', 'invoices', 'quotes'];
-      let syncSuccess = true;
-      
-      for (const collection of collections) {
-        const result = await window.electronAPI.network.syncWithMaster(
-          collection,
-          networkPrefs.masterPath
-        );
-        
-        if (!result.success) {
-          syncSuccess = false;
-          break;
-        }
-      }
-      
-      if (syncSuccess) {
-        updateNetworkPref('lastSync', new Date().toISOString());
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ Sincronizzazione completata!');
-      } else {
-        updateNetworkPref('connectionStatus', 'disconnected');
-        alert('❌ Errore durante la sincronizzazione');
-      }
-    } catch (error) {
-      console.error('Errore sincronizzazione:', error);
-      alert('❌ Errore durante la sincronizzazione: ' + error.message);
-    }
+  // Funzione per aggiornare i campi del profilo
+  const updateUserProfile = (field, value) => {
+    setUserProfile(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleStartServer = async () => {
-    try {
-      // Verifica se electronAPI è disponibile
-      if (!window.electronAPI || !window.electronAPI.network) {
-        // Simulazione per il browser - solo per test UI
-        console.log('🌐 Modalità browser: simulazione avvio server');
-        const port = networkPrefs.masterPort || 3001;
-        setServerStatus({ isRunning: true, port });
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ [SIMULAZIONE BROWSER] Server avviato sulla porta ' + port + '\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
-        return;
-      }
-      
-      if (!networkPrefs.sharedPath) {
-        alert('❌ Errore: Specificare il percorso della cartella condivisa');
-        return;
-      }
-      
-      const port = networkPrefs.masterPort || 3001;
-      const result = await window.electronAPI.network.startServer(port, networkPrefs.sharedPath);
-      
-      if (result.success) {
-        // Rileggi lo stato del server dal backend per assicurarsi che sia aggiornato
-        const status = await window.electronAPI.network.getServerStatus();
-        setServerStatus(status);
-        updateNetworkPref('connectionStatus', 'connected');
-        alert('✅ Server avviato sulla porta ' + port + '\nCartella condivisa: ' + networkPrefs.sharedPath);
-      } else {
-        alert('❌ Errore avvio server: ' + (result.error || 'Errore sconosciuto'));
-      }
-    } catch (error) {
-      console.error('Errore avvio server:', error);
-      alert('❌ Errore durante l\'avvio del server: ' + error.message);
-    }
-  };
 
-  const handleStopServer = async () => {
-    try {
-      // Verifica se electronAPI è disponibile
-      if (!window.electronAPI || !window.electronAPI.network) {
-        // Simulazione per il browser - solo per test UI
-        console.log('🌐 Modalità browser: simulazione arresto server');
-        setServerStatus({ isRunning: false, port: null });
-        updateNetworkPref('connectionStatus', 'disconnected');
-        alert('✅ [SIMULAZIONE BROWSER] Server fermato\n\nNota: Questa è solo una simulazione per testare l\'interfaccia. Per funzionalità reali, usa l\'app Electron.');
-        return;
-      }
-      
-      const result = await window.electronAPI.network.stopServer();
-      
-      if (result.success) {
-        // Rileggi lo stato del server dal backend per assicurarsi che sia aggiornato
-        const status = await window.electronAPI.network.getServerStatus();
-        setServerStatus(status);
-        updateNetworkPref('connectionStatus', 'disconnected');
-        alert('✅ Server fermato');
-      } else {
-        alert('❌ Errore arresto server: ' + (result.error || 'Errore sconosciuto'));
-      }
-    } catch (error) {
-      console.error('Errore arresto server:', error);
-      alert('❌ Errore durante l\'arresto del server: ' + error.message);
-    }
-  };
-
-  // Salva le preferenze di rete quando cambiano
-  const handleNetworkPrefChange = async (key, value) => {
-    updateNetworkPref(key, value);
-    
-    // Salva anche tramite Electron per gestire il server
-    try {
-      const updatedPrefs = { ...networkPrefs, [key]: value };
-      await window.electronAPI.network.saveNetworkPrefs(updatedPrefs);
-    } catch (error) {
-      console.error('Errore salvataggio preferenze:', error);
-    }
-  };
 
   return (
     <div className="p-4 md:p-8 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
@@ -246,13 +172,30 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         <div className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Nome Utente</label>
-            <input type="text" id="username" defaultValue="Mario Rossi" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" />
+            <input 
+              type="text" 
+              id="username" 
+              value={userProfile.username}
+              onChange={(e) => updateUserProfile('username', e.target.value)}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" 
+            />
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
-            <input type="email" id="email" defaultValue="mario.rossi@example.com" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" />
+            <input 
+              type="email" 
+              id="email" 
+              value={userProfile.email}
+              onChange={(e) => updateUserProfile('email', e.target.value)}
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" 
+            />
           </div>
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md">Salva Modifiche Profilo</button>
+          <button 
+            onClick={saveUserProfile}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+          >
+            Salva Modifiche Profilo
+          </button>
         </div>
       </div>
 
@@ -276,175 +219,7 @@ const SettingsPage = ({ darkMode, toggleDarkMode, notificationPrefs, toggleNotif
         />
       </div>
 
-      {/* Sezione Condivisione Dati */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Network size={24} className="mr-3 text-blue-500" /> Condivisione Dati
-        </h3>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="networkMode" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Modalità di Funzionamento</label>
-            <select 
-              id="networkMode" 
-              value={networkPrefs.mode}
-              onChange={(e) => handleNetworkPrefChange('mode', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="standalone">🖥️ Standalone (Solo questo PC)</option>
-              <option value="master">🏠 Master (Server - Condivide i dati)</option>
-              <option value="client">📡 Client (Si connette al Master)</option>
-            </select>
-          </div>
-          
-          {networkPrefs.mode === 'client' && (
-            <div>
-              <label htmlFor="masterPath" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Percorso Cartella Condivisa PC Master</label>
-              <input 
-                type="text" 
-                id="masterPath" 
-                value={networkPrefs.masterPath || ''}
-                onChange={(e) => handleNetworkPrefChange('masterPath', e.target.value)}
-                placeholder="\\\\192.168.1.100\\shared-crm o Z:\\shared-crm"
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Inserisci il percorso di rete alla cartella condivisa del PC master (es: \\\\IP\\cartella o unità mappata)
-              </p>
-            </div>
-          )}
-          
-          {networkPrefs.mode === 'master' && (
-            <>
-              <div>
-                <label htmlFor="masterPort" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Porta Server (Master)</label>
-                <input 
-                  type="number" 
-                  id="masterPort" 
-                  value={networkPrefs.masterPort}
-                  onChange={(e) => handleNetworkPrefChange('masterPort', e.target.value)}
-                  placeholder="3001"
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="sharedPath" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Cartella Condivisa</label>
-                <input 
-                  type="text" 
-                  id="sharedPath" 
-                  value={networkPrefs.sharedPath || ''}
-                  onChange={(e) => handleNetworkPrefChange('sharedPath', e.target.value)}
-                  placeholder="C:\\CRM-Shared"
-                  className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Percorso locale della cartella che verrà condivisa con i PC client
-                </p>
-              </div>
-            </>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Stato Connessione:</span>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                networkPrefs.connectionStatus === 'connected' 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-              }`}>
-                {networkPrefs.connectionStatus === 'connected' ? '🟢 Connesso' : '🔴 Disconnesso'}
-              </span>
-            </div>
-            
-            {networkPrefs.mode === 'master' && (
-              <div className="flex items-center">
-                <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Stato Server:</span>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  serverStatus.isRunning
-                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                }`}>
-                  {serverStatus.isRunning ? '🟣 Server Attivo' : '⚫ Server Inattivo'}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          {networkPrefs.lastSync && (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Ultima sincronizzazione: {new Date(networkPrefs.lastSync).toLocaleString('it-IT')}
-            </div>
-          )}
-          
-          <div className="flex space-x-3">
-            <button 
-              onClick={handleTestConnection}
-              disabled={networkPrefs.mode !== 'client'}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-md text-sm"
-            >
-              🔍 Testa Connessione
-            </button>
-            <button 
-              onClick={handleSyncNow}
-              disabled={networkPrefs.mode !== 'client'}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md text-sm"
-            >
-              🔄 Sincronizza Ora
-            </button>
-            {networkPrefs.mode === 'master' && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  {!serverStatus.isRunning ? (
-                    <button
-                      onClick={handleStartServer}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm"
-                    >
-                      🚀 Avvia Server
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleStopServer}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
-                    >
-                      🛑 Ferma Server
-                    </button>
-                  )}
-                </div>
-                
-                {serverStatus.isRunning && (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      ✅ Server attivo sulla porta {serverStatus.port}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">ℹ️ Informazioni Modalità:</h4>
-            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-              {networkPrefs.mode === 'standalone' && (
-                <li>• I dati sono salvati solo su questo PC</li>
-              )}
-              {networkPrefs.mode === 'master' && (
-                <>
-                  <li>• Questo PC condivide i suoi dati con altri PC Client</li>
-                  <li>• Avvia automaticamente un server locale per la condivisione</li>
-                  <li>• I dati principali risiedono su questo PC</li>
-                </>
-              )}
-              {networkPrefs.mode === 'client' && (
-                <>
-                  <li>• Questo PC si connette a un PC Master per sincronizzare i dati</li>
-                  <li>• I dati vengono scaricati dal server Master</li>
-                  <li>• Funziona anche offline con cache locale</li>
-                </>
-              )}
-            </ul>
-          </div>
-        </div>
-      </div>
+
 
       {/* Sezione Gestione Dati */}
       <DataManager />

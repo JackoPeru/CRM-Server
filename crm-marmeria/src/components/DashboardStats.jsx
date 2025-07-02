@@ -1,20 +1,32 @@
 import React from 'react';
 import { Users, Briefcase, Layers, DollarSign, TrendingUp } from 'lucide-react';
+import useUI from '../hooks/useUI';
 
-const StatCard = ({ title, value, icon: Icon, bgColor, textColor, navigateTo, targetPage, filters }) => (
-  <div
-    className={`p-6 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md ${bgColor} ${textColor}`}
-    onClick={() => navigateTo(targetPage, filters)}
-  >
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-lg font-medium">{title}</h3>
-      {Icon && <Icon className="w-7 h-7 opacity-80" />}
+const StatCard = ({ title, value, icon: Icon, bgColor, textColor, targetPage, filters }) => {
+  const { updatePreferences } = useUI();
+
+  const handleClick = () => {
+    if (filters) {
+      // TODO: Implementare filtri se necessario
+    }
+    updatePreferences({ currentPage: targetPage });
+  };
+
+  return (
+    <div
+      className={`p-6 rounded-lg shadow-sm cursor-pointer transition-all hover:shadow-md ${bgColor} ${textColor}`}
+      onClick={handleClick}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-medium">{title}</h3>
+        {Icon && <Icon className="w-7 h-7 opacity-80" />}
+      </div>
+      <p className="text-3xl font-semibold">{value}</p>
     </div>
-    <p className="text-3xl font-semibold">{value}</p>
-  </div>
-);
+  );
+};
 
-const DashboardStats = ({ stats, onNavigate }) => {
+const DashboardStats = ({ stats }) => {
   if (!stats) return null;
 
   const statItems = [
@@ -71,7 +83,6 @@ const DashboardStats = ({ stats, onNavigate }) => {
           icon={item.icon}
           bgColor={item.bgColor}
           textColor={item.textColor}
-          navigateTo={onNavigate} // Usa la funzione passata
           targetPage={item.targetPage}
           filters={item.filters}
         />
