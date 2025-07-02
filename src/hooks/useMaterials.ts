@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector, selectAllMaterials, selectMaterialsLoading, selectMaterialsError, selectMaterialsPagination, selectMaterialsFilters, selectMaterialsStats, selectMaterialCategories, selectMaterialSuppliers } from '../store';
+import { useAppDispatch, useAppSelector, selectAllMaterials, selectMaterialsLoading, selectMaterialsError, selectSelectedMaterial, selectMaterialsPagination, selectMaterialsFilters, selectMaterialsStats, selectMaterialCategories, selectMaterialSuppliers } from '../store';
 import {
   fetchMaterials,
   createMaterial,

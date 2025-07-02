@@ -4,7 +4,8 @@
  * Include funzioni specifiche per il voice-bot
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { ordersService, Order, CreateOrderRequest, OrderStatus } from '../../services/orders';
+import ordersService from '../../services/orders';
+import type { Order, CreateOrderRequest, OrderStatus } from '../../services/orders';
 
 // Interfacce per lo stato
 interface OrdersFilters {

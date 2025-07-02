@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector, selectAllClients, selectClientsLoading, selectClientsError, selectClientsPagination, selectClientsFilters, selectClientsStats } from '../store';
+import { useAppDispatch, useAppSelector, selectAllClients, selectClientsLoading, selectClientsError, selectSelectedClient, selectClientsPagination, selectClientsFilters, selectClientsStats } from '../store';
 import {
   fetchClients,
   createClient,

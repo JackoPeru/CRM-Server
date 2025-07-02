@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector, selectAllOrders, selectOrdersLoading, selectOrdersError, selectOrdersPagination, selectOrdersFilters, selectOrdersStats, selectVoiceBotOrderStatus } from '../store';
+import { useAppDispatch, useAppSelector, selectAllOrders, selectOrdersLoading, selectOrdersError, selectSelectedOrder, selectOrdersPagination, selectOrdersFilters, selectOrdersStats, selectVoiceBotOrderStatus } from '../store';
 import {
   fetchOrders,
   createOrder,

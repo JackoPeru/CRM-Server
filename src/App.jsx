@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
+import { cacheService } from './services/cache';
 import {
   LayoutDashboard,
   Users,
@@ -44,6 +45,20 @@ const AppContent = () => {
     updatePreferences,
     toggleSidebar,
   } = useUI();
+
+  // Inizializza il cache service all'avvio dell'applicazione
+  useEffect(() => {
+    const initializeCache = async () => {
+      try {
+        await cacheService.init();
+        console.log('Cache service inizializzato con successo');
+      } catch (error) {
+        console.error('Errore nell\'inizializzazione del cache service:', error);
+      }
+    };
+
+    initializeCache();
+  }, []);
 
   const CurrentPage = navItems.find(item => item.id === userPreferences.currentPage)?.component || DashboardPage;
 

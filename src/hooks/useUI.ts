@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store';
 import {
   setTheme,
@@ -118,6 +118,31 @@ const useUI = () => {
     dispatch(updateTableState({ tableId, updates: { currentPage: page } }));
   }, [dispatch]);
 
+  // Funzioni di compatibilità per i filtri delle tabelle
+  const setTableFilter = useCallback((tableId: string, filters: Record<string, any>) => {
+    dispatch(updateTableState({ tableId, updates: { filters } }));
+  }, [dispatch]);
+
+  // Utilità per ottenere dati specifici di tabelle
+  const getTableState = useCallback((tableId: string) => {
+    return tables[tableId] || {
+      sortBy: '',
+      sortOrder: 'asc',
+      filters: {},
+      selectedRows: [],
+      pageSize: 25,
+      currentPage: 1,
+    };
+  }, [tables]);
+
+  // Getter per i filtri delle tabelle (memoizzato per evitare re-render)
+  const tableFilters = useMemo(() => ({
+    customers: getTableState('customers').filters || {},
+    materials: getTableState('materials').filters || {},
+    invoices: getTableState('invoices').filters || {},
+    orders: getTableState('orders').filters || {}
+  }), [getTableState]);
+
   // Gestione loading globale
   const setLoading = useCallback((loading: boolean) => {
     dispatch(setGlobalLoading({ loading }));
@@ -146,18 +171,6 @@ const useUI = () => {
       icon: undefined
     }))));
   }, [dispatch]);
-
-  // Utilità per ottenere dati specifici di tabelle
-  const getTableState = useCallback((tableId: string) => {
-    return tables[tableId] || {
-      sortBy: '',
-      sortOrder: 'asc',
-      filters: {},
-      selectedRows: [],
-      pageSize: 25,
-      currentPage: 1,
-    };
-  }, [tables]);
 
   // Utilità per verificare se un modale è aperto
   const isModalOpen = useCallback((modalId: string) => {
@@ -206,6 +219,8 @@ const useUI = () => {
     updateTableSort,
     updateTableFilter,
     updateTablePage,
+    setTableFilter,
+    tableFilters,
     
     // Azioni loading
     setLoading,
