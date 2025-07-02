@@ -115,11 +115,15 @@ export const NetworkStatusProvider: React.FC<NetworkStatusProviderProps> = ({ ch
     }
 
     try {
+      // Usa l'URL completo del server per il controllo della connessione
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+      const healthUrl = `${baseURL}/health`;
+      
       // Tenta una richiesta a un endpoint veloce
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch('/api/health', {
+      const response = await fetch(healthUrl, {
         method: 'HEAD',
         signal: controller.signal,
         cache: 'no-cache',

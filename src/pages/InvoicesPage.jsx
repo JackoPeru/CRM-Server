@@ -33,7 +33,7 @@ const InvoicesPage = () => {
     paymentDetails: '',
   });
 
-  // Removed problematic useEffect that referenced undefined variables
+
 
   const generateInvoiceNumber = (date) => {
     const year = new Date(date).getFullYear();
@@ -423,30 +423,30 @@ const InvoicesPage = () => {
                 </div>
               </div>
 
-              <h3 className="text-md font-semibold mb-2 mt-4">Voci della Fattura</h3>
+              <h3 class="text-md font-semibold mb-2 mt-4">Voci della Fattura</h3>
               {currentInvoice.items.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-                  <div className="col-span-4">
+                  <div class="col-span-4">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Descrizione *</label>}
                     <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleCurrentInvoiceItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div className="col-span-2">
+                  <div class="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Quantità *</label>}
                     <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleCurrentInvoiceItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div className="col-span-2">
+                  <div class="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Prezzo Un. *</label>}
                     <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleCurrentInvoiceItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div className="col-span-2">
+                  <div class="col-span-2">
                     {index === 0 && <label className="block text-xs font-medium mb-1">IVA % *</label>}
                     <input type="number" placeholder="IVA" value={item.taxRate} onChange={(e) => handleCurrentInvoiceItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                   </div>
-                  <div className="col-span-1">
+                  <div class="col-span-1">
                     {index === 0 && <label className="block text-xs font-medium mb-1">Tot.</label>}
                     <span className="block p-2 text-sm">€ {calculateItemTotal(item).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="col-span-1 flex items-end">
+                  <div class="col-span-1 flex items-end">
                     {currentInvoice.items.length > 1 && (
                       <button type="button" onClick={() => handleCurrentInvoiceRemoveItem(index)} className="p-1 text-red-500 hover:text-red-700">
                         <Trash className="w-4 h-4" />

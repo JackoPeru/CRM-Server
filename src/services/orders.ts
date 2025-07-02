@@ -13,6 +13,7 @@ export interface Order {
   clientName: string;
   title: string;
   description?: string;
+  type?: 'order' | 'quote' | 'invoice';
   status: 'Preventivo' | 'In Attesa' | 'In Lavorazione' | 'Completato' | 'Annullato';
   priority: 'Bassa' | 'Media' | 'Alta' | 'Urgente';
   startDate: string;
@@ -41,6 +42,7 @@ export interface CreateOrderRequest {
   clientId: string;
   title: string;
   description?: string;
+  type?: Order['type'];
   status: Order['status'];
   priority: Order['priority'];
   startDate: string;

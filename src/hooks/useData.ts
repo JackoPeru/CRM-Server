@@ -3,7 +3,6 @@ import { useOrders } from './useOrders';
 import { useMaterials } from './useMaterials';
 import { useAuth } from './useAuth';
 import { useAnalytics } from './useAnalytics';
-import type { Order } from '../store/slices/ordersSlice';
 
 /**
  * Hook unificato per accedere a tutti i dati dell'applicazione
@@ -43,17 +42,17 @@ export const useData = () => {
     updateMaterial: materials.updateMaterial,
     deleteMaterial: materials.removeMaterial,
     
-    // Preventivi (ordini con status 'Preventivo')
-    quotes: orders.orders.filter(order => order.status === 'Preventivo'),
+    // Preventivi (subset di ordini con tipo 'quote')
+    quotes: orders.orders.filter(order => order.type === 'quote'),
     quotesLoading: orders.loading,
-    addQuote: (quoteData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => orders.addOrder({ ...quoteData, status: 'Preventivo' }),
+    addQuote: (quoteData: any) => orders.addOrder({ ...quoteData, type: 'quote' }),
     updateQuote: orders.updateOrder,
     deleteQuote: orders.removeOrder,
     
-    // Fatture (ordini completati)
-    invoices: orders.orders.filter(order => order.status === 'Completato'),
+    // Fatture (subset di ordini con tipo 'invoice')
+    invoices: orders.orders.filter(order => order.type === 'invoice'),
     invoicesLoading: orders.loading,
-    addInvoice: (invoiceData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => orders.addOrder({ ...invoiceData, status: 'Completato' }),
+    addInvoice: (invoiceData: any) => orders.addOrder({ ...invoiceData, type: 'invoice' }),
     updateInvoice: orders.updateOrder,
     deleteInvoice: orders.removeOrder,
     
@@ -73,8 +72,8 @@ export const useData = () => {
       customers: clients.clients,
       projects: orders.orders,
       materials: materials.materials,
-      quotes: orders.orders.filter(order => order.status === 'Preventivo'),
-      invoices: orders.orders.filter(order => order.status === 'Completato'),
+      quotes: orders.orders.filter(order => order.type === 'quote'),
+      invoices: orders.orders.filter(order => order.type === 'invoice'),
     }
   };
 };

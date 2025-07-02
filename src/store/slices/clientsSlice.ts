@@ -3,7 +3,8 @@
  * Sostituisce la gestione SQLite locale con chiamate API
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { clientsService, Client, CreateClientRequest } from '../../services/clients';
+import clientsService from '../../services/clients';
+import type { Client, CreateClientRequest } from '../../services/clients';
 
 // Interfacce per lo stato
 interface ClientsFilters {

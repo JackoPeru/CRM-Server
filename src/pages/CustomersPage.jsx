@@ -103,10 +103,14 @@ const CustomersPage = () => {
   };
 
   return (
-    <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
+    <>
+    <div className="p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Clienti</h1>
-        <button onClick={() => showModal({ id: 'addCustomer', type: 'add' })} className="mb-4 px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2">
+        <button 
+          onClick={() => showModal({ id: 'addCustomer', type: 'add' })}
+          className="px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center gap-2"
+        >
           <Plus className="w-5 h-5" />
           Nuovo Cliente
         </button>
@@ -392,6 +396,7 @@ const CustomersPage = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

@@ -4,7 +4,7 @@
  * Include funzioni specifiche per il voice-bot
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { analyticsService, DailySummary, WeeklySummary, MonthlySummary, PerformanceMetrics, TrendData } from '../../services/analytics';
+import analyticsService, { DailySummary, WeeklySummary, MonthlySummary, PerformanceMetrics, TrendData } from '../../services/analytics';
 
 // Interfacce per lo stato
 interface AnalyticsFilters {

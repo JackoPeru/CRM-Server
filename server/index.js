@@ -342,6 +342,225 @@ app.get('/api/materials/suppliers', (req, res) => {
   }
 });
 
+// PROGETTI
+app.get('/api/projects', (req, res) => {
+  try {
+    const projects = readData('projects');
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero progetti' });
+  }
+});
+
+app.get('/api/projects/:id', (req, res) => {
+  try {
+    const projects = readData('projects');
+    const project = projects.find(p => p.id === req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Progetto non trovato' });
+    }
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero progetto' });
+  }
+});
+
+app.post('/api/projects', (req, res) => {
+  try {
+    const projects = readData('projects');
+    const newProject = {
+      ...req.body,
+      id: req.body.id || generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    projects.push(newProject);
+    writeData('projects', projects);
+    res.status(201).json(newProject);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella creazione progetto' });
+  }
+});
+
+app.put('/api/projects/:id', (req, res) => {
+  try {
+    const projects = readData('projects');
+    const index = projects.findIndex(p => p.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Progetto non trovato' });
+    }
+    projects[index] = {
+      ...projects[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('projects', projects);
+    res.json(projects[index]);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'aggiornamento progetto' });
+  }
+});
+
+app.delete('/api/projects/:id', (req, res) => {
+  try {
+    const projects = readData('projects');
+    const filteredProjects = projects.filter(p => p.id !== req.params.id);
+    if (projects.length === filteredProjects.length) {
+      return res.status(404).json({ error: 'Progetto non trovato' });
+    }
+    writeData('projects', filteredProjects);
+    res.json({ message: 'Progetto eliminato con successo' });
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'eliminazione progetto' });
+  }
+});
+
+// PREVENTIVI
+app.get('/api/quotes', (req, res) => {
+  try {
+    const quotes = readData('quotes');
+    res.json(quotes);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero preventivi' });
+  }
+});
+
+app.get('/api/quotes/:id', (req, res) => {
+  try {
+    const quotes = readData('quotes');
+    const quote = quotes.find(q => q.id === req.params.id);
+    if (!quote) {
+      return res.status(404).json({ error: 'Preventivo non trovato' });
+    }
+    res.json(quote);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero preventivo' });
+  }
+});
+
+app.post('/api/quotes', (req, res) => {
+  try {
+    const quotes = readData('quotes');
+    const newQuote = {
+      ...req.body,
+      id: req.body.id || generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    quotes.push(newQuote);
+    writeData('quotes', quotes);
+    res.status(201).json(newQuote);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella creazione preventivo' });
+  }
+});
+
+app.put('/api/quotes/:id', (req, res) => {
+  try {
+    const quotes = readData('quotes');
+    const index = quotes.findIndex(q => q.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Preventivo non trovato' });
+    }
+    quotes[index] = {
+      ...quotes[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('quotes', quotes);
+    res.json(quotes[index]);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'aggiornamento preventivo' });
+  }
+});
+
+app.delete('/api/quotes/:id', (req, res) => {
+  try {
+    const quotes = readData('quotes');
+    const filteredQuotes = quotes.filter(q => q.id !== req.params.id);
+    if (quotes.length === filteredQuotes.length) {
+      return res.status(404).json({ error: 'Preventivo non trovato' });
+    }
+    writeData('quotes', filteredQuotes);
+    res.json({ message: 'Preventivo eliminato con successo' });
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'eliminazione preventivo' });
+  }
+});
+
+// FATTURE
+app.get('/api/invoices', (req, res) => {
+  try {
+    const invoices = readData('invoices');
+    res.json(invoices);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero fatture' });
+  }
+});
+
+app.get('/api/invoices/:id', (req, res) => {
+  try {
+    const invoices = readData('invoices');
+    const invoice = invoices.find(i => i.id === req.params.id);
+    if (!invoice) {
+      return res.status(404).json({ error: 'Fattura non trovata' });
+    }
+    res.json(invoice);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero fattura' });
+  }
+});
+
+app.post('/api/invoices', (req, res) => {
+  try {
+    const invoices = readData('invoices');
+    const newInvoice = {
+      ...req.body,
+      id: req.body.id || generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    invoices.push(newInvoice);
+    writeData('invoices', invoices);
+    res.status(201).json(newInvoice);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nella creazione fattura' });
+  }
+});
+
+app.put('/api/invoices/:id', (req, res) => {
+  try {
+    const invoices = readData('invoices');
+    const index = invoices.findIndex(i => i.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Fattura non trovata' });
+    }
+    invoices[index] = {
+      ...invoices[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('invoices', invoices);
+    res.json(invoices[index]);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'aggiornamento fattura' });
+  }
+});
+
+app.delete('/api/invoices/:id', (req, res) => {
+  try {
+    const invoices = readData('invoices');
+    const filteredInvoices = invoices.filter(i => i.id !== req.params.id);
+    if (invoices.length === filteredInvoices.length) {
+      return res.status(404).json({ error: 'Fattura non trovata' });
+    }
+    writeData('invoices', filteredInvoices);
+    res.json({ message: 'Fattura eliminata con successo' });
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'eliminazione fattura' });
+  }
+});
+
 // ANALYTICS
 app.get('/api/analytics/daily/:date?', (req, res) => {
   try {
@@ -373,6 +592,100 @@ app.get('/api/analytics/daily/:date?', (req, res) => {
   }
 });
 
+app.get('/api/analytics/dashboard', (req, res) => {
+  try {
+    const orders = readData('orders');
+    const clients = readData('clients');
+    const materials = readData('materials');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = orders.filter(order => {
+      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+      return orderDate === today;
+    });
+    
+    const stats = {
+      totalOrders: orders.length,
+      totalClients: clients.length,
+      totalRevenue: orders.reduce((sum, order) => sum + (order.amount || 0), 0),
+      todayOrders: todayOrders.length,
+      pendingOrders: orders.filter(order => order.status === 'In Attesa').length,
+      inProgressOrders: orders.filter(order => order.status === 'In Lavorazione').length,
+      completedOrders: orders.filter(order => order.status === 'Completato').length,
+      lowStockMaterials: materials.filter(material => material.quantity < 10).length,
+      recentClients: clients.filter(client => {
+        const createdDate = new Date(client.createdAt);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return createdDate > weekAgo;
+      }).length
+    };
+    
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero statistiche dashboard' });
+  }
+});
+
+app.get('/api/analytics/trends', (req, res) => {
+  try {
+    const { metric, period, startDate, endDate } = req.query;
+    const orders = readData('orders');
+    const clients = readData('clients');
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const trendData = [];
+    
+    // Genera dati di trend basati sul periodo richiesto
+    const current = new Date(start);
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0];
+      let value = 0;
+      
+      switch (metric) {
+        case 'orders':
+          value = orders.filter(order => {
+            const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+            return orderDate === dateStr;
+          }).length;
+          break;
+        case 'revenue':
+          value = orders.filter(order => {
+            const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+            return orderDate === dateStr && order.status === 'Completato';
+          }).reduce((sum, order) => sum + (order.amount || 0), 0);
+          break;
+        case 'clients':
+          value = clients.filter(client => {
+            const clientDate = new Date(client.createdAt).toISOString().split('T')[0];
+            return clientDate === dateStr;
+          }).length;
+          break;
+        default:
+          value = 0;
+      }
+      
+      trendData.push({
+        date: dateStr,
+        value,
+        label: dateStr
+      });
+      
+      // Incrementa la data in base al periodo
+      if (period === 'week') {
+        current.setDate(current.getDate() + 7);
+      } else {
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    
+    res.json(trendData);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero dati trend' });
+  }
+});
+
 // RICERCA
 app.get('/api/clients/search', (req, res) => {
   try {
@@ -401,6 +714,17 @@ app.get('/api/orders/search', (req, res) => {
     res.json(filtered);
   } catch (error) {
     res.status(500).json({ error: 'Errore nella ricerca ordini' });
+  }
+});
+
+app.get('/api/orders/by-status/:status', (req, res) => {
+  try {
+    const { status } = req.params;
+    const orders = readData('orders');
+    const filtered = orders.filter(order => order.status === status);
+    res.json(filtered);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nel recupero ordini per stato' });
   }
 });
 
