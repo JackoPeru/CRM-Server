@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, User, Lock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const LoginForm: React.FC = () => {
-  const { login, isLoading } = useAuth();
+  const { login, loading } = useAuth();
   
   const [formData, setFormData] = useState({
     username: '',
@@ -43,8 +43,13 @@ const LoginForm: React.FC = () => {
     if (!validateForm()) return;
     
     try {
-      await login(formData);
+      // Passa username direttamente come username
+      await login({
+        username: formData.username,
+        password: formData.password
+      });
     } catch (error) {
+      console.error('Errore durante il login:', error);
       // L'errore è già gestito nel context
     }
   };
@@ -100,7 +105,7 @@ const LoginForm: React.FC = () => {
                       : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
                   } text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
                   placeholder="Inserisci il tuo username"
-                  disabled={isLoading}
+                  disabled={loading}
                 />
               </div>
               {errors.username && (
@@ -129,13 +134,13 @@ const LoginForm: React.FC = () => {
                       : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
                   } text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400`}
                   placeholder="Inserisci la tua password"
-                  disabled={isLoading}
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  disabled={isLoading}
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -148,10 +153,10 @@ const LoginForm: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Accesso in corso...

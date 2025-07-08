@@ -4,6 +4,7 @@
  */
 import api from './api';
 import { cacheService } from './cache';
+import { authService } from './auth';
 import toast from 'react-hot-toast';
 
 // Interfacce TypeScript
@@ -39,11 +40,27 @@ export interface UpdateClientRequest extends Partial<CreateClientRequest> {
 class ClientsService {
 
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minuti
+  
+  /**
+   * Verifica se l'utente ha i permessi per accedere ai clienti
+   * @private
+   */
+  private checkClientPermission(): void {
+    if (!authService.hasPermission('clients.view')) {
+      const error = new Error('Permessi insufficienti');
+      (error as any).permissionDenied = true;
+      (error as any).permissionMessage = 'Non hai i permessi per accedere ai dati dei clienti';
+      throw error;
+    }
+  }
 
   /**
    * Recupera tutti i clienti
    */
   async getClients(): Promise<Client[]> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.get<Client[]>('/clients');
       const clients = response.data;
@@ -82,6 +99,9 @@ class ClientsService {
    * Recupera un cliente specifico per ID
    */
   async getClient(id: string): Promise<Client> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.get<Client>(`/clients/${id}`);
       const client = response.data;
@@ -120,6 +140,9 @@ class ClientsService {
    * Crea un nuovo cliente
    */
   async createClient(clientData: CreateClientRequest): Promise<Client> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.post<Client>('/clients', clientData);
       const newClient = response.data;
@@ -133,7 +156,15 @@ class ClientsService {
       console.error('Errore nella creazione cliente:', error);
       
       if (error.code === 'ERR_NETWORK') {
-        toast.error('Impossibile creare il cliente offline');
+        // Salva l'operazione in sospeso per un tentativo futuro
+        await this.saveOfflineOperation('create', null, clientData);
+        toast.error('Impossibile creare il cliente offline. L\'operazione verrà ritentata quando sarai online.');
+      } else if (error.permissionDenied) {
+        toast.error(error.permissionMessage || 'Non hai i permessi per creare questo cliente');
+      } else if (error.response?.status === 400) {
+        // Errore di validazione
+        const errorMessage = error.response.data?.message || 'Dati cliente non validi';
+        toast.error(`Errore: ${errorMessage}`);
       }
       
       throw error;
@@ -144,6 +175,9 @@ class ClientsService {
    * Aggiorna un cliente esistente
    */
   async updateClient(id: string, clientData: Partial<CreateClientRequest>): Promise<Client> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.patch<Client>(`/clients/${id}`, clientData);
       const updatedClient = response.data;
@@ -158,7 +192,17 @@ class ClientsService {
       console.error(`Errore nell'aggiornamento cliente ${id}:`, error);
       
       if (error.code === 'ERR_NETWORK') {
-        toast.error('Impossibile aggiornare il cliente offline');
+        // Salva l'operazione in sospeso per un tentativo futuro
+        await this.saveOfflineOperation('update', id, clientData);
+        toast.error('Impossibile aggiornare il cliente offline. L\'operazione verrà ritentata quando sarai online.');
+      } else if (error.permissionDenied) {
+        toast.error(error.permissionMessage || 'Non hai i permessi per modificare questo cliente');
+      } else if (error.response?.status === 400) {
+        // Errore di validazione
+        const errorMessage = error.response.data?.message || 'Dati cliente non validi';
+        toast.error(`Errore: ${errorMessage}`);
+      } else if (error.response?.status === 404) {
+        toast.error('Cliente non trovato');
       }
       
       throw error;
@@ -169,6 +213,9 @@ class ClientsService {
    * Elimina un cliente
    */
   async deleteClient(id: string): Promise<void> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       await api.delete(`/clients/${id}`);
       
@@ -181,7 +228,15 @@ class ClientsService {
       console.error(`Errore nell'eliminazione cliente ${id}:`, error);
       
       if (error.code === 'ERR_NETWORK') {
-        toast.error('Impossibile eliminare il cliente offline');
+        // Salva l'operazione in sospeso per un tentativo futuro
+        await this.saveOfflineOperation('delete', id, null);
+        toast.error('Impossibile eliminare il cliente offline. L\'operazione verrà ritentata quando sarai online.');
+      } else if (error.permissionDenied) {
+        toast.error(error.permissionMessage || 'Non hai i permessi per eliminare questo cliente');
+      } else if (error.response?.status === 404) {
+        toast.error('Cliente non trovato');
+      } else if (error.response?.status === 409) {
+        toast.error('Impossibile eliminare il cliente: è collegato ad altri dati nel sistema');
       }
       
       throw error;
@@ -192,6 +247,9 @@ class ClientsService {
    * Cerca clienti per nome o email
    */
   async searchClients(query: string): Promise<Client[]> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.get<Client[]>(`/clients/search`, {
         params: { q: query }
@@ -227,6 +285,9 @@ class ClientsService {
     byType: Record<string, number>;
     recentlyAdded: number;
   }> {
+    // Verifica permessi prima di procedere
+    this.checkClientPermission();
+    
     try {
       const response = await api.get('/clients/stats');
       return response.data;
@@ -293,6 +354,89 @@ class ClientsService {
       console.log('Cache clienti pulito');
     } catch (error) {
       console.error('Errore nella pulizia cache clienti:', error);
+    }
+  }
+
+  /**
+   * Salva un'operazione offline per ritentarla in seguito
+   */
+  private async saveOfflineOperation(operation: 'create' | 'update' | 'delete', id: string | null, data: any): Promise<void> {
+    try {
+      // Recupera le operazioni in sospeso dal localStorage
+      const pendingOpsString = localStorage.getItem('pendingClientOperations');
+      const pendingOps = pendingOpsString ? JSON.parse(pendingOpsString) : [];
+      
+      // Aggiungi la nuova operazione
+      pendingOps.push({
+        operation,
+        id,
+        data,
+        timestamp: Date.now()
+      });
+      
+      // Salva nel localStorage
+      localStorage.setItem('pendingClientOperations', JSON.stringify(pendingOps));
+      console.log(`Operazione ${operation} cliente salvata per retry futuro`);
+    } catch (error) {
+      console.error('Errore nel salvataggio operazione offline:', error);
+    }
+  }
+
+  /**
+   * Ritenta le operazioni offline in sospeso
+   * Da chiamare quando l'app torna online
+   */
+  async retryPendingOperations(): Promise<void> {
+    try {
+      const pendingOpsString = localStorage.getItem('pendingClientOperations');
+      if (!pendingOpsString) return;
+      
+      const pendingOps = JSON.parse(pendingOpsString);
+      if (pendingOps.length === 0) return;
+      
+      console.log(`Ritentativo di ${pendingOps.length} operazioni cliente in sospeso`);
+      
+      // Crea una copia dell'array per poter rimuovere elementi durante l'iterazione
+      const remainingOps = [];
+      
+      for (const op of pendingOps) {
+        try {
+          if (op.operation === 'create') {
+            await api.post<Client>('/clients', op.data);
+          } else if (op.operation === 'update' && op.id) {
+            await api.patch<Client>(`/clients/${op.id}`, op.data);
+          } else if (op.operation === 'delete' && op.id) {
+            await api.delete(`/clients/${op.id}`);
+          }
+          
+          console.log(`Operazione ${op.operation} cliente completata con successo`);
+        } catch (error) {
+          console.error(`Errore nel ritentativo operazione ${op.operation} cliente:`, error);
+          
+          // Se l'errore non è di rete, non ritentare più questa operazione
+          if ((error as any).code !== 'ERR_NETWORK') {
+            console.log(`Operazione ${op.operation} cliente rimossa dalla coda di retry`);
+          } else {
+            // Mantieni l'operazione per un futuro ritentativo
+            remainingOps.push(op);
+          }
+        }
+      }
+      
+      // Aggiorna il localStorage con le operazioni rimanenti
+      if (remainingOps.length > 0) {
+        localStorage.setItem('pendingClientOperations', JSON.stringify(remainingOps));
+        console.log(`${remainingOps.length} operazioni cliente rimaste in sospeso`);
+      } else {
+        localStorage.removeItem('pendingClientOperations');
+        console.log('Tutte le operazioni cliente in sospeso completate');
+        toast.success('Operazioni in sospeso completate con successo');
+      }
+      
+      // Ricarica i dati aggiornati
+      await this.invalidateCache();
+    } catch (error) {
+      console.error('Errore nel ritentativo operazioni offline:', error);
     }
   }
 }

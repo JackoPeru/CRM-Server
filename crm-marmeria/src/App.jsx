@@ -2,8 +2,10 @@ import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { cacheService } from './services/cache';
+import { ErrorProvider } from './context/ErrorContext.jsx';
+import { ChakraProvider } from '@chakra-ui/react';
 
-console.log('🚨🚨🚨 [App] MODULO APP CARICATO - DEBUG ATTIVO 🚨🚨🚨');
+
 import {
   LayoutDashboard,
   Users,
@@ -14,9 +16,9 @@ import {
   Settings as Cog,
 } from 'lucide-react';
 
-import { store } from './store';
+import { store } from './store/index';
 import { NetworkStatusProvider } from './contexts/NetworkStatusProvider';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import LoginForm from './components/auth/LoginForm.tsx';
@@ -29,6 +31,7 @@ import MaterialsPage from './pages/MaterialsPage';
 import QuotesPage from './pages/QuotesPage';
 import InvoicesPage from './pages/InvoicesPage';
 import SettingsPage from './pages/SettingsPage';
+
 
 import useUI from './hooks/useUI';
 
@@ -81,12 +84,10 @@ const navItems = [
     icon: Cog, 
     component: SettingsPage,
     permission: 'settings.view'
-  },
+  }
 ];
 
 const AppContent = () => {
-  console.log('🚀 [App] AppContent rendering iniziato');
-  
   // IMPORTANTE: Tutti gli hooks devono essere chiamati prima di qualsiasi return condizionale
   // per rispettare le regole dei hooks di React
   const {
@@ -97,22 +98,20 @@ const AppContent = () => {
     toggleSidebar,
   } = useUI();
   
-  const { isAuthenticated, isLoading, user, hasPermission } = useAuth();
-  
-  console.log('📊 [App] Stato autenticazione:', {
-    isAuthenticated,
-    isLoading,
-    hasUser: !!user,
-    userId: user?.id,
-    userRole: user?.role
-  });
+  const { isAuthenticated, isLoading, currentUser, hasPermission } = useAuth();
+  console.log('[App.jsx] AppContent - Stato:', { isAuthenticated, isLoading });
 
   // Inizializza il cache service all'avvio dell'applicazione
+  // Utilizziamo un ref per tenere traccia dell'inizializzazione
+  const cacheInitialized = React.useRef(false);
+  
   useEffect(() => {
     const initializeCache = async () => {
+      if (cacheInitialized.current) return;
+      
       try {
         await cacheService.init();
-        console.log('Cache service inizializzato con successo');
+        cacheInitialized.current = true;
       } catch (error) {
         console.error('Errore nell\'inizializzazione del cache service:', error);
       }
@@ -122,7 +121,7 @@ const AppContent = () => {
   }, []);
 
   // Calcola i valori necessari per il rendering (solo se autenticato)
-  const allowedNavItems = isAuthenticated && user ? navItems.filter(item => 
+  const allowedNavItems = isAuthenticated && currentUser ? navItems.filter(item => 
     !item.permission || hasPermission(item.permission)
   ) : [];
 
@@ -131,12 +130,12 @@ const AppContent = () => {
   
   // Usa useEffect per evitare loop infiniti
   useEffect(() => {
-    if (user && userPreferences.currentPage && !allowedNavItems.find(item => item.id === userPreferences.currentPage)) {
+    if (currentUser && userPreferences.currentPage && !allowedNavItems.find(item => item.id === userPreferences.currentPage)) {
       // Solo se la pagina corrente non è permessa, cambia alla prima disponibile
       const defaultPage = allowedNavItems[0]?.id || 'dashboard';
       updatePreferences({ currentPage: defaultPage });
     }
-  }, [user, userPreferences.currentPage, allowedNavItems.length]); // Rimuovi updatePreferences dalle dipendenze per evitare loop
+  }, [currentUser, userPreferences.currentPage, allowedNavItems.length]); // Rimuovi updatePreferences dalle dipendenze per evitare loop
 
   const CurrentPageComponent = allowedNavItems.find(item => item.id === currentPage)?.component || DashboardPage;
   const currentPagePermission = allowedNavItems.find(item => item.id === currentPage)?.permission;
@@ -145,29 +144,28 @@ const AppContent = () => {
   
   // Mostra loading durante l'inizializzazione
   if (isLoading) {
-    console.log('⏳ [App] Mostrando schermata di caricamento');
+    console.log('[App.jsx] AppContent - Mostra schermata di caricamento');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Caricamento...</p>
+          <p className="text-gray-600 dark:text-gray-400">Verifica autenticazione in corso...</p>
         </div>
       </div>
     );
   }
 
   // Mostra login se non autenticato
-  if (!isAuthenticated || !user) {
-    console.log('🔐 [App] Utente non autenticato, mostrando LoginForm');
+  if (!isAuthenticated || !currentUser) {
+    console.log('[App.jsx] AppContent - Mostra LoginForm');
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <LoginForm />
       </div>
     );
   }
-  
-  console.log('✅ [App] Utente autenticato, rendering app principale');
 
+  console.log('[App.jsx] AppContent - Mostra layout principale');
   return (
     <div className={`app ${theme} ${isSidebarOpen ? 'sidebar-open' : ''}`}>
       <Sidebar
@@ -175,7 +173,7 @@ const AppContent = () => {
         isSidebarOpen={isSidebarOpen}
         currentPage={currentPage}
         handleNavigation={(pageId) => updatePreferences({ currentPage: pageId })}
-        currentUser={user}
+        currentUser={currentUser}
         appId="crm-marmeria"
         onClose={toggleSidebar}
       />
@@ -195,13 +193,19 @@ const AppContent = () => {
 const App = () => {
   return (
     <Provider store={store}>
-      <NetworkStatusProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </NetworkStatusProvider>
+      <ChakraProvider>
+        <NetworkStatusProvider>
+          <ErrorProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ErrorProvider>
+        </NetworkStatusProvider>
+      </ChakraProvider>
     </Provider>
   );
 };
+
+
 
 export default App;

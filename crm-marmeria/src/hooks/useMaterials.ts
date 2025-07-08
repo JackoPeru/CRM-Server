@@ -32,7 +32,6 @@ export const useMaterials = () => {
 
   // Carica i materiali all'avvio
   useEffect(() => {
-    console.log('🔍 [useMaterials] useEffect iniziale - caricamento dati materiali');
     dispatch(fetchMaterials());
     dispatch(fetchMaterialsStats());
     dispatch(fetchMaterialCategories());
@@ -50,16 +49,13 @@ export const useMaterials = () => {
    * Aggiunge un nuovo materiale
    */
   const addMaterial = useCallback(async (materialData: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('➕ [useMaterials] Aggiunta materiale:', materialData.name);
     const result = await dispatch(createMaterial(materialData));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useMaterials] Materiale aggiunto con successo, ricarico lista');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchMaterials());
-      // dispatch(fetchMaterialsStats());
+      // Ricarica la lista dopo l'aggiunta
+      dispatch(fetchMaterials());
+      dispatch(fetchMaterialsStats());
       return true;
     }
-    console.log('❌ [useMaterials] Errore aggiunta materiale');
     return false;
   }, [dispatch]);
 
@@ -67,16 +63,13 @@ export const useMaterials = () => {
    * Aggiorna un materiale esistente
    */
   const updateMaterialData = useCallback(async (id: string, materialData: Partial<Material>) => {
-    console.log('✏️ [useMaterials] Aggiornamento materiale:', id);
     const result = await dispatch(updateMaterial({ id, data: materialData }));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useMaterials] Materiale aggiornato con successo');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchMaterials());
-      // dispatch(fetchMaterialsStats());
+      // Ricarica la lista dopo l'aggiornamento
+      dispatch(fetchMaterials());
+      dispatch(fetchMaterialsStats());
       return true;
     }
-    console.log('❌ [useMaterials] Errore aggiornamento materiale');
     return false;
   }, [dispatch]);
 
@@ -84,16 +77,13 @@ export const useMaterials = () => {
    * Elimina un materiale
    */
   const removeMaterial = useCallback(async (id: string) => {
-    console.log('🗑️ [useMaterials] Eliminazione materiale:', id);
     const result = await dispatch(removeMaterialAction(id));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useMaterials] Materiale eliminato con successo');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchMaterials());
-      // dispatch(fetchMaterialsStats());
+      // Ricarica la lista dopo l'eliminazione
+      dispatch(fetchMaterials());
+      dispatch(fetchMaterialsStats());
       return true;
     }
-    console.log('❌ [useMaterials] Errore eliminazione materiale');
     return false;
   }, [dispatch]);
 
@@ -109,17 +99,15 @@ export const useMaterials = () => {
    * Imposta i filtri per i materiali
    */
   const setFilter = useCallback((filter: Partial<MaterialsFilters>) => {
-    console.log('🔍 [useMaterials] Impostazione filtri:', filter);
     dispatch(setMaterialsFilters(filter));
-    // PROBLEMA: Questa chiamata può causare troppe richieste API
-    // dispatch(fetchMaterials());
+    // Ricarica i dati con i nuovi filtri
+    dispatch(fetchMaterials());
   }, [dispatch]);
 
   /**
    * Cambia pagina
    */
   const setPage = useCallback((page: number) => {
-    console.log('📄 [useMaterials] Cambio pagina:', page);
     dispatch(setMaterialsPagination({ page }));
     dispatch(fetchMaterials());
   }, [dispatch]);

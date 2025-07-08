@@ -59,6 +59,7 @@ export const selectIsAuthenticated = (state: RootState) => state.auth.isAuthenti
 export const selectCurrentUser = (state: RootState) => state.auth.user;
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
+export const selectAuthToken = (state: RootState) => state.auth.tokens?.accessToken;
 
 // Selettori di utilità per clienti
 export const selectAllClients = (state: RootState) => state.clients.items;

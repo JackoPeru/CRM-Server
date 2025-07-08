@@ -3,7 +3,7 @@
 export const PROJECT_STATUS_OPTIONS = [
     'Preventivo',
     'In Attesa',
-    'In Lavorazione',
+    'In Corso',
     'Completato',
     'Annullato',
   ];

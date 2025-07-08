@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { Shield, AlertTriangle } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -17,7 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   roles,
   fallback
 }) => {
-  const { isAuthenticated, hasPermission, hasRole, hasAnyRole, user } = useAuth();
+  const { isAuthenticated, hasPermission, hasRole, hasAnyRole, currentUser } = useAuth();
 
   // Se non è autenticato, non mostrare nulla (sarà gestito dall'App)
   if (!isAuthenticated) {
@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 };
 
 const AccessDenied: React.FC = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -66,10 +66,10 @@ const AccessDenied: React.FC = () => {
               <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-2" />
               <div className="text-left">
                 <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  Utente corrente: {user?.firstName} {user?.lastName}
+                  Utente corrente: {currentUser?.name}
                 </p>
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  Ruolo: {user?.role}
+                  Ruolo: {currentUser?.role}
                 </p>
               </div>
             </div>

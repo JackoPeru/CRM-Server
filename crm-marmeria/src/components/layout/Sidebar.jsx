@@ -33,14 +33,14 @@ const Sidebar = ({
           <button
             key={item.id}
             onClick={() => handleNavigation(item.id)}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors
+            className={`w-full flex items-center space-x-3 px-3 py-3 md:py-2.5 rounded-md text-sm md:text-base font-medium transition-colors touch-target mobile-friendly-text
               ${
                 currentPage === item.id
                   ? 'bg-light-secondary text-light-primary dark:bg-dark-secondary dark:text-white shadow-md'
                   : 'hover:bg-light-accent/20 dark:hover:bg-dark-accent/20'
               }`}
           >
-            {item.icon && <item.icon className="w-5 h-5" />}
+            {item.icon && <item.icon className="w-6 h-6 md:w-5 md:h-5" />}
             <span>{item.label}</span>
           </button>
         ))}

@@ -19,6 +19,7 @@ interface ClientsState {
   selectedClient: Client | null;
   loading: boolean;
   error: string | null;
+  permissionDenied: boolean;
   filters: ClientsFilters;
   pagination: {
     page: number;
@@ -40,6 +41,7 @@ const initialState: ClientsState = {
   selectedClient: null,
   loading: false,
   error: null,
+  permissionDenied: false,
   filters: {
     searchTerm: '',
     type: '',
@@ -64,7 +66,7 @@ const initialState: ClientsState = {
 export const fetchClients = createAsyncThunk<
   Client[],
   void,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/fetchClients',
   async (_, { rejectWithValue }) => {
@@ -72,8 +74,15 @@ export const fetchClients = createAsyncThunk<
       const clients = await clientsService.getClients();
       return clients;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per visualizzare i clienti',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nel caricamento clienti';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -84,7 +93,7 @@ export const fetchClients = createAsyncThunk<
 export const fetchClient = createAsyncThunk<
   Client,
   string,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/fetchClient',
   async (clientId, { rejectWithValue }) => {
@@ -92,8 +101,15 @@ export const fetchClient = createAsyncThunk<
       const client = await clientsService.getClient(clientId);
       return client;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per visualizzare questo cliente',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nel caricamento cliente';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -104,7 +120,7 @@ export const fetchClient = createAsyncThunk<
 export const createClient = createAsyncThunk<
   Client,
   CreateClientRequest,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/createClient',
   async (clientData, { rejectWithValue }) => {
@@ -112,8 +128,15 @@ export const createClient = createAsyncThunk<
       const newClient = await clientsService.createClient(clientData);
       return newClient;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per creare nuovi clienti',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nella creazione cliente';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -124,7 +147,7 @@ export const createClient = createAsyncThunk<
 export const updateClient = createAsyncThunk<
   Client,
   { id: string; data: Partial<CreateClientRequest> },
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/updateClient',
   async ({ id, data }, { rejectWithValue }) => {
@@ -132,8 +155,15 @@ export const updateClient = createAsyncThunk<
       const updatedClient = await clientsService.updateClient(id, data);
       return updatedClient;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per modificare questo cliente',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nell\'aggiornamento cliente';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -144,7 +174,7 @@ export const updateClient = createAsyncThunk<
 export const deleteClient = createAsyncThunk<
   string,
   string,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/deleteClient',
   async (clientId, { rejectWithValue }) => {
@@ -152,8 +182,15 @@ export const deleteClient = createAsyncThunk<
       await clientsService.deleteClient(clientId);
       return clientId;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per eliminare questo cliente',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nell\'eliminazione cliente';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -164,7 +201,7 @@ export const deleteClient = createAsyncThunk<
 export const searchClients = createAsyncThunk<
   Client[],
   string,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/searchClients',
   async (query, { rejectWithValue }) => {
@@ -172,8 +209,15 @@ export const searchClients = createAsyncThunk<
       const clients = await clientsService.searchClients(query);
       return clients;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per cercare clienti',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nella ricerca clienti';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -184,7 +228,7 @@ export const searchClients = createAsyncThunk<
 export const fetchClientsStats = createAsyncThunk<
   { total: number; byType: Record<string, number>; recentlyAdded: number },
   void,
-  { rejectValue: string }
+  { rejectValue: any }
 >(
   'clients/fetchClientsStats',
   async (_, { rejectWithValue }) => {
@@ -192,8 +236,15 @@ export const fetchClientsStats = createAsyncThunk<
       const stats = await clientsService.getClientsStats();
       return stats;
     } catch (error: any) {
+      // Gestione specifica per errori di permesso
+      if (error.permissionDenied) {
+        return rejectWithValue({
+          message: error.permissionMessage || 'Non hai i permessi per visualizzare le statistiche clienti',
+          permissionDenied: true
+        });
+      }
       const message = error.response?.data?.message || error.message || 'Errore nel caricamento statistiche';
-      return rejectWithValue(message);
+      return rejectWithValue({ message });
     }
   }
 );
@@ -208,6 +259,7 @@ const clientsSlice = createSlice({
      */
     clearClientsError: (state) => {
       state.error = null;
+      state.permissionDenied = false;
     },
     
     /**
@@ -289,7 +341,9 @@ const clientsSlice = createSlice({
       })
       .addCase(fetchClients.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nel caricamento clienti';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nel caricamento clienti' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Fetch Client
@@ -314,7 +368,9 @@ const clientsSlice = createSlice({
       })
       .addCase(fetchClient.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nel caricamento cliente';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nel caricamento cliente' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Create Client
@@ -332,7 +388,9 @@ const clientsSlice = createSlice({
       })
       .addCase(createClient.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nella creazione cliente';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nella creazione cliente' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Update Client
@@ -359,7 +417,9 @@ const clientsSlice = createSlice({
       })
       .addCase(updateClient.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nell\'aggiornamento cliente';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nell\'aggiornamento cliente' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Delete Client
@@ -383,7 +443,9 @@ const clientsSlice = createSlice({
       })
       .addCase(deleteClient.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nell\'eliminazione cliente';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nell\'eliminazione cliente' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Search Clients
@@ -401,7 +463,9 @@ const clientsSlice = createSlice({
       })
       .addCase(searchClients.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nella ricerca clienti';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nella ricerca clienti' };
+        state.error = payload.message;
+        state.permissionDenied = !!payload.permissionDenied;
       });
     
     // Fetch Clients Stats
@@ -417,7 +481,9 @@ const clientsSlice = createSlice({
       })
       .addCase(fetchClientsStats.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Errore nel caricamento statistiche';
+        const payload = action.payload as { message: string; permissionDenied?: boolean } || { message: 'Errore nel caricamento statistiche' };
+        state.error = payload.message;
+        // Non impostiamo permissionDenied per le statistiche, poiché è un errore meno critico
       });
   },
 });

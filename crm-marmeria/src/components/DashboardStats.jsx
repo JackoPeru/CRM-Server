@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, Briefcase, Layers, DollarSign, TrendingUp } from 'lucide-react';
 import useUI from '../hooks/useUI';
+import { useAuth } from '../hooks/useAuth';
 
 const StatCard = ({ title, value, icon: Icon, bgColor, textColor, targetPage, filters }) => {
   const { updatePreferences } = useUI();
@@ -27,9 +28,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor, targetPage, fi
 };
 
 const DashboardStats = ({ stats }) => {
+  const { currentUser } = useAuth();
   if (!stats) return null;
 
-  const statItems = [
+  const allStatItems = [
     {
       title: 'Clienti Attivi',
       value: stats.customers,
@@ -73,8 +75,18 @@ const DashboardStats = ({ stats }) => {
     },
   ];
 
+  // Filtra le card in base al ruolo dell'utente
+  // Gli operai (worker) non possono vedere le card Clienti e Fatturato
+  const statItems = currentUser?.role === 'worker' 
+    ? allStatItems.filter(item => item.title !== 'Clienti Attivi' && item.title !== 'Fatturato (Mese)')
+    : allStatItems;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
+    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 ${
+      currentUser?.role === 'worker' 
+        ? 'lg:grid-cols-3 justify-center max-w-5xl mx-auto' 
+        : 'lg:grid-cols-3 xl:grid-cols-5'
+    }`}>
       {statItems.map((item) => (
         <StatCard
           key={item.title}

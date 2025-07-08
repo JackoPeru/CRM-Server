@@ -28,5 +28,15 @@
     "type": "premium",
     "createdAt": "2024-02-01T09:45:00.000Z",
     "updatedAt": "2024-02-01T09:45:00.000Z"
+  },
+  {
+    "name": "Prova connessione ",
+    "email": "",
+    "phone": "",
+    "address": "",
+    "type": "Privato",
+    "id": "17518953908087hsz5n425",
+    "createdAt": "2025-07-07T13:36:30.808Z",
+    "updatedAt": "2025-07-07T13:36:30.808Z"
   }
 ]

@@ -32,9 +32,65 @@ main {
   z-index: 9999 !important;
 }
 
-/* Responsive */
+/* Responsive Design Migliorato */
 @media (max-width: 768px) {
   .sidebar-open .main-content {
     @apply ml-0;
+  }
+  
+  /* Padding ridotto su mobile */
+  main {
+    @apply p-2;
+  }
+  
+  /* Tabelle responsive - nascondi su mobile */
+  .desktop-table {
+    @apply hidden;
+  }
+  
+  /* Card layout per mobile */
+  .mobile-cards {
+    @apply block;
+  }
+  
+  /* Miglioramenti per touch */
+  button, .clickable {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Modal responsive */
+  .modal-content {
+    @apply mx-2 max-h-[90vh] overflow-y-auto;
+  }
+  
+  /* Form responsive */
+  .form-grid {
+    @apply grid-cols-1 !important;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Desktop - mostra tabelle, nascondi cards */
+  .desktop-table {
+    @apply block;
+  }
+  
+  .mobile-cards {
+    @apply hidden;
+  }
+}
+
+/* Utility classes per responsive */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+}
+
+.mobile-friendly-text {
+  @apply text-base leading-relaxed;
+}
+
+@media (max-width: 640px) {
+  .mobile-friendly-text {
+    @apply text-lg leading-relaxed;
   }
 }

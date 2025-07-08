@@ -1,14 +1,195 @@
 [
   {
-    "name": "re",
+    "name": "a",
     "clientId": "client_001",
-    "startDate": "2025-07-03",
-    "deadline": "2025-07-17",
-    "budget": "€ 23,00",
+    "startDate": "2025-07-04",
+    "deadline": "2025-07-05",
+    "budget": "€ 2,00",
+    "status": "In Corso",
+    "client": "Cliente non specificato",
+    "id": "1751616900089bfx7e94l6",
+    "createdAt": "2025-07-04T08:15:00.089Z",
+    "updatedAt": "2025-07-07T07:53:01.558Z",
+    "images": [
+      {
+        "id": "17516182438383f3lqkz7u",
+        "filename": "1751618243837-849008972.jpg",
+        "originalName": "logo.jpg",
+        "path": "/uploads/orders/1751616900089bfx7e94l6/1751618243837-849008972.jpg",
+        "size": 23533,
+        "uploadedAt": "2025-07-04T08:37:23.838Z"
+      },
+      {
+        "id": "1751618379462vqayx3ay8",
+        "filename": "1751618379044-298086556.jpg",
+        "originalName": "17516183714696303409677180266142.jpg",
+        "path": "/uploads/orders/1751616900089bfx7e94l6/1751618379044-298086556.jpg",
+        "size": 2189141,
+        "uploadedAt": "2025-07-04T08:39:39.462Z"
+      },
+      {
+        "id": "17516189577125m8kqzi8a",
+        "filename": "1751618957658-675771764.jpg",
+        "originalName": "Screenshot_2025-07-03-13-11-02-20_6012fa4d4ddec268fc5c7112cbb265e7.jpg",
+        "path": "/uploads/orders/1751616900089bfx7e94l6/1751618957658-675771764.jpg",
+        "size": 584477,
+        "uploadedAt": "2025-07-04T08:49:17.712Z"
+      },
+      {
+        "id": "1751626286172wqih9htvc",
+        "filename": "1751626285556-147479163.jpg",
+        "originalName": "17516262757391255352814914108645.jpg",
+        "path": "/uploads/orders/1751616900089bfx7e94l6/1751626285556-147479163.jpg",
+        "size": 1901851,
+        "uploadedAt": "2025-07-04T10:51:26.172Z"
+      }
+    ],
+    "assignedWorker": {
+      "id": "worker_002",
+      "username": "alex",
+      "name": "alex",
+      "assignedAt": "2025-07-07T07:53:01.558Z"
+    }
+  },
+  {
+    "name": "b",
+    "clientId": "client_002",
+    "startDate": "2025-07-05",
+    "deadline": "2025-07-05",
+    "budget": "€ 5,00",
+    "status": "In Corso",
+    "client": "Cliente non specificato",
+    "id": "1751616918000yj4r2o5rf",
+    "createdAt": "2025-07-04T08:15:18.000Z",
+    "updatedAt": "2025-07-04T13:47:27.916Z",
+    "images": [
+      {
+        "id": "1751626725127zsc9zyr6m",
+        "filename": "1751626725079-665154749.jpg",
+        "originalName": "Screenshot_2025-07-03-13-35-13-84_40deb401b9ffe8e1df2f1cc5ba480b12.jpg",
+        "path": "/uploads/orders/1751616918000yj4r2o5rf/1751626725079-665154749.jpg",
+        "size": 354665,
+        "uploadedAt": "2025-07-04T10:58:45.127Z"
+      }
+    ],
+    "assignedWorker": {
+      "id": "worker_001",
+      "username": "mario",
+      "name": "mario",
+      "assignedAt": "2025-07-04T13:47:27.916Z"
+    }
+  },
+  {
+    "name": "c",
+    "clientId": "client_003",
+    "startDate": "2025-07-10",
+    "deadline": "2025-07-10",
+    "budget": "€ 4,00",
+    "status": "In Corso",
+    "client": "Cliente non specificato",
+    "id": "17516169342333acuqv5es",
+    "createdAt": "2025-07-04T08:15:34.233Z",
+    "updatedAt": "2025-07-04T13:54:40.066Z",
+    "images": [
+      {
+        "id": "1751617875164xxnpor3r5",
+        "filename": "1751617875163-678696278.jpg",
+        "originalName": "logo.jpg",
+        "path": "/uploads/orders/17516169342333acuqv5es/1751617875163-678696278.jpg",
+        "size": 23533,
+        "uploadedAt": "2025-07-04T08:31:15.164Z"
+      }
+    ],
+    "assignedWorker": {
+      "id": "worker_003",
+      "username": "ettore",
+      "name": "ettore",
+      "assignedAt": "2025-07-04T13:54:40.067Z"
+    }
+  },
+  {
+    "name": "d",
+    "clientId": "client_003",
+    "startDate": "2025-07-05",
+    "deadline": "2025-07-06",
+    "budget": "€ 4,00",
     "status": "In Attesa",
     "client": "Cliente non specificato",
-    "id": "17514420526213a21lpvq6",
-    "createdAt": "2025-07-02T07:40:52.621Z",
-    "updatedAt": "2025-07-02T07:40:52.621Z"
+    "id": "1751616950400jq7m80vd9",
+    "createdAt": "2025-07-04T08:15:50.400Z",
+    "updatedAt": "2025-07-04T13:16:01.502Z",
+    "images": [
+      {
+        "id": "1751617923576zjj3gu6gx",
+        "filename": "1751617923362-519122125.jpg",
+        "originalName": "IMG-20181213-WA0000.jpg",
+        "path": "/uploads/orders/1751616950400jq7m80vd9/1751617923362-519122125.jpg",
+        "size": 190856,
+        "uploadedAt": "2025-07-04T08:32:03.576Z"
+      },
+      {
+        "id": "17516181465368lw3j4lsj",
+        "filename": "1751618146107-296044471.jpg",
+        "originalName": "17516181375786832044299899061558.jpg",
+        "path": "/uploads/orders/1751616950400jq7m80vd9/1751618146107-296044471.jpg",
+        "size": 2156435,
+        "uploadedAt": "2025-07-04T08:35:46.536Z"
+      },
+      {
+        "id": "1751618464093vz1uk4k6m",
+        "filename": "1751618463470-536740444.jpg",
+        "originalName": "17516184575084880875991627189113.jpg",
+        "path": "/uploads/orders/1751616950400jq7m80vd9/1751618463470-536740444.jpg",
+        "size": 5079187,
+        "uploadedAt": "2025-07-04T08:41:04.093Z"
+      }
+    ],
+    "assignedWorker": null
+  },
+  {
+    "date": "2025-07-04",
+    "dueDate": "2025-07-11",
+    "customerId": null,
+    "projectId": null,
+    "quoteId": null,
+    "items": [
+      {
+        "description": "descrizione non lo so",
+        "quantity": 1,
+        "unitPrice": 0,
+        "taxRate": 22
+      }
+    ],
+    "notes": "note aggiuntive",
+    "status": "Pagata Parzialmente",
+    "paymentDetails": "dettagli pagamento non lo so",
+    "invoiceNumber": "FATT-2025-001",
+    "total": 0,
+    "type": "invoice",
+    "id": "1751637523158umtt6y5pv",
+    "createdAt": "2025-07-04T13:58:43.158Z",
+    "updatedAt": "2025-07-04T13:58:43.158Z"
+  },
+  {
+    "date": "2025-07-04",
+    "customerId": null,
+    "projectId": null,
+    "items": [
+      {
+        "description": "dsv",
+        "quantity": 1,
+        "unitPrice": 0,
+        "materialId": ""
+      }
+    ],
+    "notes": "",
+    "status": "Bozza",
+    "validityDays": 30,
+    "type": "quote",
+    "quoteNumber": "PREV-2025-001",
+    "total": 0,
+    "id": "1751638596555epgk489jp",
+    "createdAt": "2025-07-04T14:16:36.555Z",
+    "updatedAt": "2025-07-04T14:16:36.555Z"
   }
 ]

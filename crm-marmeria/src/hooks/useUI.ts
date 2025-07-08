@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store';
+import { useError } from '../context/ErrorContext';
 import {
   setTheme,
   addToast,
@@ -55,15 +56,39 @@ const useUI = () => {
   const userPreferences = useAppSelector(selectPreferences);
   const globalSearch = useAppSelector(selectGlobalSearch);
   const breadcrumbs = useAppSelector(selectBreadcrumb);
+  
+  // Integrazione con ErrorContext
+  const errorContext = useError();
+
+  // Carica il tema e le preferenze da localStorage all'avvio
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('crm_theme');
+    const savedPreferences = localStorage.getItem('crm_preferences');
+    
+    if (savedTheme) {
+      dispatch(setTheme(savedTheme as AppTheme));
+    }
+    
+    if (savedPreferences) {
+      try {
+        const parsedPreferences = JSON.parse(savedPreferences);
+        dispatch(updatePreferences(parsedPreferences));
+      } catch (error) {
+        console.error('Errore nel parsing delle preferenze salvate:', error);
+      }
+    }
+  }, [dispatch]);
 
   // Gestione tema
   const changeTheme = useCallback((newTheme: AppTheme) => {
     dispatch(setTheme(newTheme));
+    localStorage.setItem('crm_theme', newTheme);
   }, [dispatch]);
 
   const toggleTheme = useCallback(() => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     dispatch(setTheme(newTheme));
+    localStorage.setItem('crm_theme', newTheme);
   }, [dispatch, theme]);
 
   // Gestione notifiche
@@ -78,6 +103,29 @@ const useUI = () => {
   const clearAllNotifications = useCallback(() => {
     dispatch(clearAllToasts());
   }, [dispatch]);
+  
+  // Gestione errori integrata con ErrorContext
+  const showError = useCallback((error: { type?: 'general' | 'permission' | 'network' | 'validation'; message: string; retryAction?: () => void; autoClose?: boolean; timeout?: number }) => {
+    return errorContext.addError({
+      type: error.type || 'general',
+      message: error.message,
+      retryAction: error.retryAction,
+      autoClose: error.autoClose !== undefined ? error.autoClose : true,
+      timeout: error.timeout || 5000
+    });
+  }, [errorContext]);
+  
+  const showPermissionError = useCallback((message: string) => {
+    errorContext.handlePermissionError(message);
+  }, [errorContext]);
+  
+  const showNetworkError = useCallback((message: string) => {
+    errorContext.handleNetworkError(message);
+  }, [errorContext]);
+  
+  const clearAllErrors = useCallback(() => {
+    errorContext.clearAllErrors();
+  }, [errorContext]);
 
   // Gestione modali
   const showModal = useCallback((modal: ModalData) => {
@@ -156,7 +204,12 @@ const useUI = () => {
   // Gestione preferenze utente
   const updateUserPreferences = useCallback((preferences: Partial<UserPreferences>) => {
     dispatch(updatePreferences(preferences));
-  }, [dispatch]);
+    
+    // Salva le preferenze aggiornate in localStorage
+    const currentPreferences = userPreferences;
+    const updatedPreferences = { ...currentPreferences, ...preferences };
+    localStorage.setItem('crm_preferences', JSON.stringify(updatedPreferences));
+  }, [dispatch, userPreferences]);
 
   // Gestione ricerca globale
   const updateGlobalSearch = useCallback((query: string) => {
@@ -204,6 +257,13 @@ const useUI = () => {
     hideNotification,
     clearAllNotifications,
     
+    // Gestione errori
+    showError,
+    showPermissionError,
+    showNetworkError,
+    clearAllErrors,
+    errors: errorContext.errors,
+    
     // Azioni modali
     showModal,
     hideModal,
@@ -242,6 +302,9 @@ const useUI = () => {
     getTableState,
     isModalOpen,
     getModal,
+    
+    // Alias per compatibilità
+    showAlert: showError,
   };
 };
 

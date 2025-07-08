@@ -4,6 +4,7 @@
  */
 import axios, { AxiosInstance } from 'axios';
 import toast from 'react-hot-toast';
+import { authService } from './auth';  // Importa l'istanza singleton di AuthService
 
 // Interfacce TypeScript
 
@@ -45,17 +46,50 @@ class ApiClient {
       }
     );
 
-    // Response interceptor - gestisce errori di autenticazione
+    // Response interceptor - gestisce errori di autenticazione e permessi
     this.axiosInstance.interceptors.response.use(
-      (response) => {
-        return response;
-      },
+      (response) => response,
       async (error) => {
-        // Se è un errore 401, pulisci l'autenticazione
-        if (error.response?.status === 401) {
+        const originalRequest = error.config;
+        
+        // Se è un errore 401 (Unauthorized) e non è già un retry
+        if (error.response?.status === 401 && !originalRequest?._retry) {
+          originalRequest._retry = true;
+          
+          // Se siamo sulla pagina di login, non tentare il refresh del token
+          if (window.location.pathname.includes('login')) {
+            console.error('Errore di autenticazione durante il login:', error.response?.data);
+            this.handleAuthError();
+            return Promise.reject(error);
+          }
+          
+          console.error('Errore di autenticazione (401), logout in corso.');
           this.handleAuthError();
+          // Non reindirizzare qui, lascia che sia l'UI a gestire il cambio di stato
+          // basato su isAuthenticated.
+          return Promise.reject(error);
         }
-
+        
+        // Gestione errori 403 (Forbidden) - permessi insufficienti
+        if (error.response?.status === 403) {
+          console.error('Errore di permessi:', error.response?.data);
+          // Mostra notifica solo se non è già stata mostrata di recente
+          const lastPermissionError = localStorage.getItem('lastPermissionErrorToast');
+          const now = Date.now();
+          
+          if (!lastPermissionError || (now - parseInt(lastPermissionError)) > 30000) { // 30 secondi
+            toast.error('Permessi insufficienti per questa operazione', {
+              duration: 5000,
+              id: 'permission-error' // Previene duplicati
+            });
+            localStorage.setItem('lastPermissionErrorToast', now.toString());
+          }
+          
+          // Aggiungiamo informazioni dettagliate all'errore per una migliore gestione a livello Redux
+          error.permissionDenied = true;
+          error.permissionMessage = 'Non hai i permessi necessari per eseguire questa operazione';
+        }
+        
         // Gestione errori di rete - notifica ridotta per evitare spam
         if (error.code === 'ERR_NETWORK') {
           // Mostra notifica solo se non è già stata mostrata di recente
@@ -69,8 +103,13 @@ class ApiClient {
             });
             localStorage.setItem('lastNetworkErrorToast', now.toString());
           }
+          
+          // Emetti un evento per notificare l'app dello stato offline
+          window.dispatchEvent(new CustomEvent('app:offline'));
+        } else if (error.response && error.response.status !== 403) { // Evitiamo di loggare due volte gli errori 403
+          console.error(`Errore API ${error.response.status}:`, error.response.data);
         }
-
+        
         return Promise.reject(error);
       }
     );
@@ -100,6 +139,8 @@ class ApiClient {
     // Pulisci il token dal localStorage
     localStorage.removeItem('crm_auth_token');
     localStorage.removeItem('crm_user_data');
+    // Rimuovi anche il profilo utente utilizzato da authSlice
+    localStorage.removeItem('crm_user_profile');
     // Non ricaricare automaticamente la pagina per evitare loop infiniti
     // Lascia che sia l'AuthContext a gestire il cambio di stato
   }
@@ -141,7 +182,33 @@ class ApiClient {
     return this.axiosInstance.delete(url, config);
   }
 
+  /**
+   * Metodo PATCH
+   */
+  async patch(url: string, data?: any, config?: any) {
+    return this.axiosInstance.patch(url, data, config);
+  }
+
 }
+
+// Aggiungi un listener per quando l'app torna online
+window.addEventListener('online', () => {
+  console.log('App tornata online');
+  toast.success('Connessione ristabilita');
+  
+  // Emetti un evento per notificare l'app dello stato online
+  window.dispatchEvent(new CustomEvent('app:online'));
+  
+  // Ritenta le operazioni in sospeso
+  import('./clients').then(module => {
+    const clientsService = module.default;
+    if (clientsService && typeof clientsService.retryPendingOperations === 'function') {
+      clientsService.retryPendingOperations();
+    }
+  }).catch(err => {
+    console.error('Errore nel caricamento del servizio clienti:', err);
+  });
+});
 
 // Istanza singleton dell'API client
 export const apiClient = new ApiClient();

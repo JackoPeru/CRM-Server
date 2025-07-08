@@ -25,10 +25,10 @@ export const useClients = () => {
   const pagination = useAppSelector(selectClientsPagination);
   const filters = useAppSelector(selectClientsFilters);
   const stats = useAppSelector(selectClientsStats);
+  const permissionDenied = useAppSelector(state => state.clients.permissionDenied);
 
   // Carica i clienti all'avvio
   useEffect(() => {
-    console.log('🔍 [useClients] useEffect iniziale - caricamento dati clienti');
     dispatch(fetchClients());
     dispatch(fetchClientsStats());
   }, [dispatch]);
@@ -44,16 +44,13 @@ export const useClients = () => {
    * Aggiunge un nuovo cliente
    */
   const addClient = useCallback(async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('➕ [useClients] Aggiunta cliente:', clientData.name);
     const result = await dispatch(createClient(clientData));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useClients] Cliente aggiunto con successo');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchClients());
-      // dispatch(fetchClientsStats());
+      // Ricarica la lista dopo l'aggiunta
+      dispatch(fetchClients());
+      dispatch(fetchClientsStats());
       return true;
     }
-    console.log('❌ [useClients] Errore aggiunta cliente');
     return false;
   }, [dispatch]);
 
@@ -61,16 +58,13 @@ export const useClients = () => {
    * Aggiorna un cliente esistente
    */
   const updateClientData = useCallback(async (id: string, clientData: Partial<Client>) => {
-    console.log('✏️ [useClients] Aggiornamento cliente:', id);
     const result = await dispatch(updateClient({ id, data: clientData }));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useClients] Cliente aggiornato con successo');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchClients());
-      // dispatch(fetchClientsStats());
+      // Ricarica la lista dopo l'aggiornamento
+      dispatch(fetchClients());
+      dispatch(fetchClientsStats());
       return true;
     }
-    console.log('❌ [useClients] Errore aggiornamento cliente');
     return false;
   }, [dispatch]);
 
@@ -78,16 +72,13 @@ export const useClients = () => {
    * Elimina un cliente
    */
   const removeClient = useCallback(async (id: string) => {
-    console.log('🗑️ [useClients] Eliminazione cliente:', id);
     const result = await dispatch(removeClientAction(id));
     if (result.meta.requestStatus === 'fulfilled') {
-      console.log('✅ [useClients] Cliente eliminato con successo');
-      // PROBLEMA: Queste chiamate causano un loop infinito!
-      // dispatch(fetchClients());
-      // dispatch(fetchClientsStats());
+      // Ricarica la lista dopo l'eliminazione
+      dispatch(fetchClients());
+      dispatch(fetchClientsStats());
       return true;
     }
-    console.log('❌ [useClients] Errore eliminazione cliente');
     return false;
   }, [dispatch]);
 
@@ -103,10 +94,9 @@ export const useClients = () => {
    * Imposta i filtri per i clienti
    */
   const setFilter = useCallback((filter: Partial<ClientsFilters>) => {
-    console.log('🔍 [useClients] Impostazione filtri:', filter);
     dispatch(setClientsFilters(filter));
-    // PROBLEMA: Questa chiamata può causare troppe richieste API
-    // dispatch(fetchClients());
+    // Ricarica i dati con i nuovi filtri
+    dispatch(fetchClients());
   }, [dispatch]);
 
   /**
@@ -131,6 +121,15 @@ export const useClients = () => {
     return clients.find(client => client.id === id);
   }, [clients]);
 
+  // Funzione per verificare se l'utente ha i permessi necessari
+  const checkPermission = useCallback(() => {
+    if (permissionDenied) {
+      // Mostra un messaggio di errore più evidente per problemi di permessi
+      return false;
+    }
+    return true;
+  }, [permissionDenied]);
+
   return {
     // Stato
     clients,
@@ -139,6 +138,7 @@ export const useClients = () => {
     pagination,
     filters,
     stats,
+    permissionDenied,
     
     // Azioni
     refetch,
@@ -150,6 +150,7 @@ export const useClients = () => {
     setPage,
     clearError,
     getClientById,
+    checkPermission
   };
 };
 

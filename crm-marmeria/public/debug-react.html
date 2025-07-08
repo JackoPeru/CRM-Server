@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug React Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug React Test</h1>
+    <div id="status">⏳ Caricamento in corso...</div>
+    <div id="root"></div>
+    
+    <script type="module">
+        console.log('🧪 [DebugReact] Script caricato');
+        
+        async function testReact() {
+            try {
+                // Test di importazione React con import dinamici
+                const React = await import('/node_modules/react/index.js');
+                const ReactDOM = await import('/node_modules/react-dom/client.js');
+                
+                console.log('✅ [DebugReact] React importato con successo', React);
+                console.log('✅ [DebugReact] ReactDOM importato con successo', ReactDOM);
+                
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = '<span class="success">✅ React caricato con successo!</span>';
+                
+                // Test di rendering
+                const TestComponent = () => {
+                    return React.default.createElement('div', { style: { padding: '10px', border: '1px solid green' } }, 
+                        React.default.createElement('h2', null, '🎉 React Rendering Funziona!'),
+                        React.default.createElement('p', null, 'Timestamp: ' + new Date().toLocaleString())
+                    );
+                };
+                
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(React.default.createElement(TestComponent));
+                
+                console.log('✅ [DebugReact] Rendering completato');
+                
+            } catch (error) {
+                console.error('❌ [DebugReact] Errore:', error);
+                document.getElementById('status').innerHTML = 
+                    '<span class="error">❌ Errore: ' + error.message + '</span>';
+            }
+        }
+        
+        // Avvia il test
+        testReact();
+    </script>
+</body>
+</html>

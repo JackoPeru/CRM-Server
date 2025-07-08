@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector, selectIsAuthenticated, selectCurrentUser, selectAuthLoading, selectAuthError } from '../store';
+import { useAppDispatch, useAppSelector, selectIsAuthenticated, selectCurrentUser, selectAuthLoading, selectAuthError, selectAuthToken } from '../store';
 import {
   loginUser,
   logoutUser,
@@ -20,16 +20,14 @@ export const useAuth = () => {
   const loading = useAppSelector(selectAuthLoading);
   const error = useAppSelector(selectAuthError);
   const currentUser = useAppSelector(selectCurrentUser);
+  const token = useAppSelector(selectAuthToken);
 
-  // Controlla lo stato di autenticazione all'avvio
-  useEffect(() => {
-    dispatch(checkAuthStatus());
-  }, [dispatch]);
+  // Nota: checkAuthStatus viene chiamato dall'AuthProvider, non qui per evitare loop infiniti
 
   /**
    * Effettua il login dell'utente
    */
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: { username?: string; email?: string; password: string }) => {
     const result = await dispatch(loginUser(credentials));
     return result.meta.requestStatus === 'fulfilled';
   };
@@ -64,6 +62,30 @@ export const useAuth = () => {
     return result.meta.requestStatus === 'fulfilled';
   };
 
+  /**
+   * Verifica se l'utente ha un permesso specifico
+   */
+  const hasPermission = (permission: string): boolean => {
+    if (!currentUser || !currentUser.permissions) return false;
+    return currentUser.permissions.includes(permission);
+  };
+
+  /**
+   * Verifica se l'utente ha un ruolo specifico
+   */
+  const hasRole = (role: string): boolean => {
+    if (!currentUser) return false;
+    return currentUser.role === role;
+  };
+
+  /**
+   * Verifica se l'utente ha uno dei ruoli specificati
+   */
+  const hasAnyRole = (roles: string[]): boolean => {
+    if (!currentUser) return false;
+    return roles.includes(currentUser.role);
+  };
+
   return {
     // Stato
     isAuth: isAuthenticated,
@@ -71,6 +93,7 @@ export const useAuth = () => {
     loading,
     error,
     currentUser,
+    token,
     
     // Azioni
     login,
@@ -78,6 +101,11 @@ export const useAuth = () => {
     updateProfile,
     clearError,
     forceRefreshToken,
+    
+    // Verifiche di autorizzazione
+    hasPermission,
+    hasRole,
+    hasAnyRole,
   };
 };
 
