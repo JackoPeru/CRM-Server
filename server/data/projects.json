@@ -1,1 +1,53 @@
-[]
+[
+  {
+    "name": "e",
+    "clientId": "client_003",
+    "startDate": "2025-07-08",
+    "deadline": "2025-07-09",
+    "budget": "€ 2,00",
+    "status": "In Attesa",
+    "type": "project",
+    "client": "Luca Verdi",
+    "id": "1751970137873kgz1t9cpk",
+    "createdAt": "2025-07-08T10:22:17.873Z",
+    "updatedAt": "2025-07-08T10:28:55.485Z",
+    "images": [
+      {
+        "id": "17519705354856g8xaabwr",
+        "filename": "1751970535479-248999864.jpeg",
+        "originalName": "logo_Nero AI_Business.jpeg",
+        "path": "/uploads/projects/1751970137873kgz1t9cpk/1751970535479-248999864.jpeg",
+        "size": 405771,
+        "uploadedAt": "2025-07-08T10:28:55.485Z"
+      }
+    ]
+  },
+  {
+    "name": "f",
+    "clientId": "client_001",
+    "startDate": "2025-07-10",
+    "deadline": "2025-07-15",
+    "budget": "€ 4,00",
+    "status": "Annullato",
+    "type": "project",
+    "client": "Mario Rossi",
+    "id": "17519705652154dcrrnect",
+    "createdAt": "2025-07-08T10:29:25.215Z",
+    "updatedAt": "2025-07-08T10:29:49.192Z",
+    "images": [
+      {
+        "id": "1751970565242wzuqs79vh",
+        "filename": "1751970565236-642760884.jpg",
+        "originalName": "logo.jpg",
+        "path": "/uploads/projects/17519705652154dcrrnect/1751970565236-642760884.jpg",
+        "size": 109449,
+        "uploadedAt": "2025-07-08T10:29:25.242Z"
+      }
+    ],
+    "title": "f",
+    "clientName": "Mario Rossi",
+    "endDate": "2025-07-15",
+    "amount": 4,
+    "materials": []
+  }
+]

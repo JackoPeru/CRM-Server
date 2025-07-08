@@ -3,7 +3,7 @@
  * Sostituisce la gestione SQLite locale con chiamate API
  * Include funzioni specifiche per il voice-bot
  */
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import ordersService from '../../services/orders';
 import type { Order, CreateOrderRequest, OrderStatus } from '../../services/orders';
 
@@ -255,7 +255,7 @@ export const fetchOrderStatusForVoiceBot = createAsyncThunk<
         clientName: order.clientName,
         title: order.title,
         priority: order.priority,
-        completionPercentage: order.status === 'Completato' ? 100 : (order.status === 'In Lavorazione' ? 50 : 0),
+        completionPercentage: order.status === 'Completato' ? 100 : (order.status === 'In Corso' ? 50 : 0),
         delaysCount: 0, // Calcolo semplificato
         lastUpdate: new Date().toISOString()
       };
@@ -577,6 +577,13 @@ export const selectVoiceBotCache = (state: { orders: OrdersState }) => state.ord
 // Selettori specifici per voice-bot
 export const selectOrderStatusFromCache = (orderId: string) => 
   (state: { orders: OrdersState }) => state.orders.voiceBotCache.orderStatus[orderId];
+
+// Memoized selector for finding order by ID
+export const selectOrderById = (orderId: string) => 
+  createSelector(
+    [selectOrdersItems],
+    (orders) => orders.find(order => order.id === orderId)
+  );
 
 // Export types
 export type { OrdersFilters, OrdersState };

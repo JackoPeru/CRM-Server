@@ -34,6 +34,8 @@ import SettingsPage from './pages/SettingsPage';
 
 
 import useUI from './hooks/useUI';
+import AIAssistantOverlay from './components/AIAssistant/AIAssistantOverlay';
+import { AIAssistantProvider } from './contexts/AIAssistantContext';
 
 const navItems = [
   { 
@@ -128,6 +130,13 @@ const AppContent = () => {
   const currentPageItem = allowedNavItems.find(item => item.id === userPreferences.currentPage);
   const currentPage = currentPageItem ? userPreferences.currentPage : allowedNavItems[0]?.id || 'dashboard';
   
+  // Forza il re-rendering quando cambia la pagina corrente
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+  
+  React.useEffect(() => {
+    forceUpdate();
+  }, [userPreferences.currentPage]);
+  
   // Usa useEffect per evitare loop infiniti
   useEffect(() => {
     if (currentUser && userPreferences.currentPage && !allowedNavItems.find(item => item.id === userPreferences.currentPage)) {
@@ -136,6 +145,19 @@ const AppContent = () => {
       updatePreferences({ currentPage: defaultPage });
     }
   }, [currentUser, userPreferences.currentPage, allowedNavItems.length]); // Rimuovi updatePreferences dalle dipendenze per evitare loop
+
+  // Listener per navigazione dall'assistente IA
+  useEffect(() => {
+    const handleNavigateToPage = (event) => {
+      const { page } = event.detail;
+      if (allowedNavItems.find(item => item.id === page)) {
+        updatePreferences({ currentPage: page });
+      }
+    };
+
+    window.addEventListener('navigate-to-page', handleNavigateToPage);
+    return () => window.removeEventListener('navigate-to-page', handleNavigateToPage);
+  }, [allowedNavItems, updatePreferences]);
 
   const CurrentPageComponent = allowedNavItems.find(item => item.id === currentPage)?.component || DashboardPage;
   const currentPagePermission = allowedNavItems.find(item => item.id === currentPage)?.permission;
@@ -186,6 +208,7 @@ const AppContent = () => {
         </main>
       </div>
       <Toaster position="bottom-right" />
+      <AIAssistantOverlay />
     </div>
   );
 };
@@ -197,7 +220,9 @@ const App = () => {
         <NetworkStatusProvider>
           <ErrorProvider>
             <AuthProvider>
-              <AppContent />
+              <AIAssistantProvider>
+                <AppContent />
+              </AIAssistantProvider>
             </AuthProvider>
           </ErrorProvider>
         </NetworkStatusProvider>

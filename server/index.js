@@ -938,11 +938,31 @@ app.delete('/api/orders/:orderId/images/:imageId', authenticateToken, requirePer
   }
 });
 
+// Funzione helper per identificare se un oggetto è un progetto
+const isProject = (item) => {
+  // Un progetto deve avere questi campi essenziali
+  const hasProjectFields = item.name && item.clientId && item.startDate && item.deadline && item.budget && item.status;
+  // E non deve essere un preventivo o fattura
+  const isNotQuoteOrInvoice = item.type !== 'quote' && item.type !== 'invoice';
+  return hasProjectFields && isNotQuoteOrInvoice;
+};
+
 // PROGETTI
 app.get('/api/projects', authenticateToken, requirePermission('projects.view'), (req, res) => {
   try {
+    // Leggi sia da projects.json che da orders.json per i progetti
     const projects = readData('projects');
-    res.json(projects);
+    const orders = readData('orders');
+    
+    // Filtra gli ordini che sono progetti (sia con type='project' che con struttura di progetto)
+    const projectsFromOrders = orders.filter(order => isProject(order));
+    
+    // Combina i progetti da entrambe le fonti, evitando duplicati per ID
+    const projectIds = new Set(projects.map(p => p.id));
+    const uniqueProjectsFromOrders = projectsFromOrders.filter(order => !projectIds.has(order.id));
+    const allProjects = [...projects, ...uniqueProjectsFromOrders];
+    
+    res.json(allProjects);
   } catch (error) {
     res.status(500).json({ error: 'Errore nel recupero progetti' });
   }
@@ -950,8 +970,16 @@ app.get('/api/projects', authenticateToken, requirePermission('projects.view'), 
 
 app.get('/api/projects/:id', authenticateToken, requirePermission('projects.view'), (req, res) => {
   try {
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const project = projects.find(p => p.id === req.params.id);
+    let project = projects.find(p => p.id === req.params.id);
+    
+    // Se non trovato, cerca negli ordini che sono progetti
+    if (!project) {
+      const orders = readData('orders');
+      project = orders.find(order => order.id === req.params.id && isProject(order));
+    }
+    
     if (!project) {
       return res.status(404).json({ error: 'Progetto non trovato' });
     }
@@ -980,18 +1008,48 @@ app.post('/api/projects', authenticateToken, requirePermission('projects.create'
 
 app.put('/api/projects/:id', authenticateToken, requirePermission('projects.edit'), (req, res) => {
   try {
+    const projectId = req.params.id;
+    
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const index = projects.findIndex(p => p.id === req.params.id);
-    if (index === -1) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
+    let index = projects.findIndex(p => p.id === projectId);
+    let isInProjectsFile = true;
+    
+    if (index !== -1) {
+      // Aggiorna nel file progetti
+      const updatedProject = {
+        ...projects[index],
+        ...req.body,
+        id: projectId,
+        updatedAt: new Date().toISOString()
+      };
+      
+      projects[index] = updatedProject;
+      writeData('projects', projects);
+      
+      res.json(updatedProject);
+    } else {
+      // Se non trovato nei progetti, cerca negli ordini
+      const orders = readData('orders');
+      index = orders.findIndex(order => order.id === projectId && isProject(order));
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
+      
+      const updatedProject = {
+        ...orders[index],
+        ...req.body,
+        id: projectId,
+        type: 'project', // Assicurati che il tipo sia sempre 'project'
+        updatedAt: new Date().toISOString()
+      };
+      
+      orders[index] = updatedProject;
+      writeData('orders', orders);
+      
+      res.json(updatedProject);
     }
-    projects[index] = {
-      ...projects[index],
-      ...req.body,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('projects', projects);
-    res.json(projects[index]);
   } catch (error) {
     res.status(500).json({ error: 'Errore nell\'aggiornamento progetto' });
   }
@@ -1000,14 +1058,27 @@ app.put('/api/projects/:id', authenticateToken, requirePermission('projects.edit
 app.delete('/api/projects/:id', authenticateToken, requirePermission('projects.delete'), (req, res) => {
   try {
     const projectId = req.params.id;
+    
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const projectIndex = projects.findIndex(p => p.id === projectId);
+    let projectIndex = projects.findIndex(p => p.id === projectId);
+    let project = null;
+    let isInProjectsFile = true;
     
-    if (projectIndex === -1) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
+    if (projectIndex !== -1) {
+      project = projects[projectIndex];
+    } else {
+      // Se non trovato nei progetti, cerca negli ordini
+      const orders = readData('orders');
+      projectIndex = orders.findIndex(order => order.id === projectId && isProject(order));
+      isInProjectsFile = false;
+      
+      if (projectIndex === -1) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
+      
+      project = orders[projectIndex];
     }
-    
-    const project = projects[projectIndex];
     
     // Elimina tutte le immagini associate al progetto
     if (project.images && project.images.length > 0) {
@@ -1035,9 +1106,15 @@ app.delete('/api/projects/:id', authenticateToken, requirePermission('projects.d
       }
     }
     
-    // Rimuovi il progetto dal database
-    const filteredProjects = projects.filter(p => p.id !== projectId);
-    writeData('projects', filteredProjects);
+    // Rimuovi il progetto dal database appropriato
+    if (isInProjectsFile) {
+      const filteredProjects = projects.filter(p => p.id !== projectId);
+      writeData('projects', filteredProjects);
+    } else {
+      const orders = readData('orders');
+      const filteredOrders = orders.filter(order => order.id !== projectId);
+      writeData('orders', filteredOrders);
+    }
     
     res.json({ message: 'Progetto e immagini associate eliminate con successo' });
   } catch (error) {
@@ -1049,20 +1126,42 @@ app.delete('/api/projects/:id', authenticateToken, requirePermission('projects.d
 // Aggiorna lo stato di un progetto
 app.patch('/api/projects/:id', authenticateToken, requirePermission('projects.edit'), (req, res) => {
   try {
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const index = projects.findIndex(p => p.id === req.params.id);
+    let index = projects.findIndex(p => p.id === req.params.id);
+    let isInProjectsFile = true;
+    
+    // Se non trovato nei progetti, cerca negli ordini
     if (index === -1) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
+      const orders = readData('orders');
+      index = orders.findIndex(order => order.id === req.params.id && isProject(order));
+      isInProjectsFile = false;
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
+      
+      // Aggiorna nel file orders
+      orders[index] = {
+        ...orders[index],
+        ...req.body,
+        type: 'project', // Assicurati che il tipo sia sempre 'project'
+        updatedAt: new Date().toISOString()
+      };
+      
+      writeData('orders', orders);
+      res.json(orders[index]);
+    } else {
+      // Aggiorna nel file projects
+      projects[index] = {
+        ...projects[index],
+        ...req.body,
+        updatedAt: new Date().toISOString()
+      };
+      
+      writeData('projects', projects);
+      res.json(projects[index]);
     }
-    
-    projects[index] = {
-      ...projects[index],
-      ...req.body,
-      updatedAt: new Date().toISOString()
-    };
-    
-    writeData('projects', projects);
-    res.json(projects[index]);
   } catch (error) {
     console.error('Errore nell\'aggiornamento progetto:', error);
     res.status(500).json({ error: 'Errore nell\'aggiornamento progetto' });
@@ -1077,37 +1176,76 @@ app.patch('/api/projects/:id/status', authenticateToken, requirePermission('proj
       return res.status(400).json({ error: 'Lo stato del progetto è richiesto' });
     }
     
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const index = projects.findIndex(p => p.id === req.params.id);
+    let index = projects.findIndex(p => p.id === req.params.id);
+    let isInProjectsFile = true;
+    
+    // Se non trovato nei progetti, cerca negli ordini
     if (index === -1) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
-    }
-    
-    const updatedProject = {
-      ...projects[index],
-      status,
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Assegnazione automatica operaio quando lo stato passa a "In Corso"
-    if (status === 'In Corso' && !updatedProject.assignedWorker) {
-      const currentUser = req.user; // Dati dell'utente autenticato dal middleware
-      updatedProject.assignedWorker = {
-        id: currentUser.id,
-        username: currentUser.username,
-        name: currentUser.username, // Usa lo username come nome visualizzato
-        assignedAt: new Date().toISOString()
+      const orders = readData('orders');
+      index = orders.findIndex(order => order.id === req.params.id && isProject(order));
+      isInProjectsFile = false;
+      
+      if (index === -1) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
+      
+      // Aggiorna nel file orders
+      const updatedProject = {
+        ...orders[index],
+        status,
+        type: 'project', // Assicurati che il tipo sia sempre 'project'
+        updatedAt: new Date().toISOString()
       };
+      
+      // Assegnazione automatica operaio quando lo stato passa a "In Corso"
+      if (status === 'In Corso' && !updatedProject.assignedWorker) {
+        const currentUser = req.user;
+        updatedProject.assignedWorker = {
+          id: currentUser.id,
+          username: currentUser.username,
+          name: currentUser.username,
+          assignedAt: new Date().toISOString()
+        };
+      }
+      
+      // Se lo stato non è più "In Corso", rimuovi l'assegnazione
+      if (status !== 'In Corso' && updatedProject.assignedWorker) {
+        updatedProject.assignedWorker = null;
+      }
+      
+      orders[index] = updatedProject;
+      writeData('orders', orders);
+      res.json(orders[index]);
+    } else {
+      // Aggiorna nel file projects
+      const updatedProject = {
+        ...projects[index],
+        status,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Assegnazione automatica operaio quando lo stato passa a "In Corso"
+      if (status === 'In Corso' && !updatedProject.assignedWorker) {
+        const currentUser = req.user;
+        updatedProject.assignedWorker = {
+          id: currentUser.id,
+          username: currentUser.username,
+          name: currentUser.username,
+          assignedAt: new Date().toISOString()
+        };
+      }
+      
+      // Se lo stato non è più "In Corso", rimuovi l'assegnazione
+      if (status !== 'In Corso' && updatedProject.assignedWorker) {
+        updatedProject.assignedWorker = null;
+      }
+      
+      projects[index] = updatedProject;
+      writeData('projects', projects);
+      res.json(projects[index]);
     }
-    
-    // Se lo stato non è più "In Corso", rimuovi l'assegnazione
-    if (status !== 'In Corso' && updatedProject.assignedWorker) {
-      updatedProject.assignedWorker = null;
-    }
-    
-    projects[index] = updatedProject;
-    writeData('projects', projects);
-    res.json(projects[index]);
   } catch (error) {
     console.error('Errore nell\'aggiornamento stato progetto:', error);
     res.status(500).json({ error: 'Errore nell\'aggiornamento stato progetto' });
@@ -1121,11 +1259,22 @@ app.post('/api/projects/:projectId/images', authenticateToken, requirePermission
   try {
     const projectId = req.params.projectId;
     
-    // Verifica che il progetto esista
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const project = projects.find(p => p.id === projectId);
+    let project = projects.find(p => p.id === projectId);
+    let projectIndex = projects.findIndex(p => p.id === projectId);
+    let isInProjectsFile = true;
+    
+    // Se non trovato nei progetti, cerca negli ordini
     if (!project) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
+      const orders = readData('orders');
+      project = orders.find(order => order.id === projectId && isProject(order));
+      projectIndex = orders.findIndex(order => order.id === projectId && isProject(order));
+      isInProjectsFile = false;
+      
+      if (!project) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
     }
     
     // Prepara le informazioni sui file caricati
@@ -1139,20 +1288,36 @@ app.post('/api/projects/:projectId/images', authenticateToken, requirePermission
     }));
     
     // Aggiorna il progetto con le nuove immagini
-    const projectIndex = projects.findIndex(p => p.id === projectId);
-    if (!projects[projectIndex].images) {
-      projects[projectIndex].images = [];
+    if (isInProjectsFile) {
+      if (!projects[projectIndex].images) {
+        projects[projectIndex].images = [];
+      }
+      projects[projectIndex].images.push(...uploadedFiles);
+      projects[projectIndex].updatedAt = new Date().toISOString();
+      
+      writeData('projects', projects);
+      
+      res.json({
+        message: 'Immagini caricate con successo',
+        images: uploadedFiles,
+        project: projects[projectIndex]
+      });
+    } else {
+      const orders = readData('orders');
+      if (!orders[projectIndex].images) {
+        orders[projectIndex].images = [];
+      }
+      orders[projectIndex].images.push(...uploadedFiles);
+      orders[projectIndex].updatedAt = new Date().toISOString();
+      
+      writeData('orders', orders);
+      
+      res.json({
+        message: 'Immagini caricate con successo',
+        images: uploadedFiles,
+        project: orders[projectIndex]
+      });
     }
-    projects[projectIndex].images.push(...uploadedFiles);
-    projects[projectIndex].updatedAt = new Date().toISOString();
-    
-    writeData('projects', projects);
-    
-    res.json({
-      message: 'Immagini caricate con successo',
-      images: uploadedFiles,
-      project: projects[projectIndex]
-    });
   } catch (error) {
     console.error('Errore nell\'upload delle immagini:', error);
     res.status(500).json({ error: 'Errore nell\'upload delle immagini' });
@@ -1163,8 +1328,16 @@ app.post('/api/projects/:projectId/images', authenticateToken, requirePermission
 app.get('/api/projects/:projectId/images', authenticateToken, requirePermission('projects.view'), (req, res) => {
   try {
     const projectId = req.params.projectId;
+    
+    // Cerca prima nei progetti dedicati
     const projects = readData('projects');
-    const project = projects.find(p => p.id === projectId);
+    let project = projects.find(p => p.id === projectId);
+    
+    // Se non trovato nei progetti, cerca negli ordini
+    if (!project) {
+      const orders = readData('orders');
+      project = orders.find(order => order.id === projectId && isProject(order));
+    }
     
     if (!project) {
       return res.status(404).json({ error: 'Progetto non trovato' });
@@ -1181,14 +1354,28 @@ app.get('/api/projects/:projectId/images', authenticateToken, requirePermission(
 app.delete('/api/projects/:projectId/images/:imageId', authenticateToken, requirePermission('projects.edit'), (req, res) => {
   try {
     const { projectId, imageId } = req.params;
-    const projects = readData('projects');
-    const projectIndex = projects.findIndex(p => p.id === projectId);
     
-    if (projectIndex === -1) {
-      return res.status(404).json({ error: 'Progetto non trovato' });
+    // Cerca prima nei progetti dedicati
+    const projects = readData('projects');
+    let projectIndex = projects.findIndex(p => p.id === projectId);
+    let project = null;
+    let isInProjectsFile = true;
+    
+    if (projectIndex !== -1) {
+      project = projects[projectIndex];
+    } else {
+      // Se non trovato nei progetti, cerca negli ordini
+      const orders = readData('orders');
+      projectIndex = orders.findIndex(order => order.id === projectId && isProject(order));
+      isInProjectsFile = false;
+      
+      if (projectIndex === -1) {
+        return res.status(404).json({ error: 'Progetto non trovato' });
+      }
+      
+      project = orders[projectIndex];
     }
     
-    const project = projects[projectIndex];
     if (!project.images) {
       return res.status(404).json({ error: 'Immagine non trovata' });
     }
@@ -1206,11 +1393,17 @@ app.delete('/api/projects/:projectId/images/:imageId', authenticateToken, requir
       fs.unlinkSync(filePath);
     }
     
-    // Rimuovi l'immagine dall'array
-    project.images.splice(imageIndex, 1);
-    project.updatedAt = new Date().toISOString();
-    
-    writeData('projects', projects);
+    // Rimuovi l'immagine dall'array e aggiorna il database appropriato
+    if (isInProjectsFile) {
+      projects[projectIndex].images.splice(imageIndex, 1);
+      projects[projectIndex].updatedAt = new Date().toISOString();
+      writeData('projects', projects);
+    } else {
+      const orders = readData('orders');
+      orders[projectIndex].images.splice(imageIndex, 1);
+      orders[projectIndex].updatedAt = new Date().toISOString();
+      writeData('orders', orders);
+    }
     
     res.json({ message: 'Immagine eliminata con successo' });
   } catch (error) {

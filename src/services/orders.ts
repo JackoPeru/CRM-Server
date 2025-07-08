@@ -127,12 +127,16 @@ class OrdersService {
         type: order.type as Order['type']
       }));
       
-      const orders = [...normalizedOrders, ...normalizedProjects];
+      // Combina gli ordini rimuovendo i duplicati basandosi sull'ID
+      const allOrders = [...normalizedOrders, ...normalizedProjects];
+      const uniqueOrders = allOrders.filter((order, index, self) => 
+        index === self.findIndex(o => o.id === order.id)
+      );
       
       // Salva nel cache per uso offline
-      await cacheService.set('orders', 'all', orders, this.CACHE_TTL);
+      await cacheService.set('orders', 'all', uniqueOrders, this.CACHE_TTL);
       
-      return orders;
+      return uniqueOrders;
     } catch (error: any) {
       console.error('Errore nel recupero ordini:', error);
       

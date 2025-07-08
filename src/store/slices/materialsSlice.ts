@@ -2,7 +2,7 @@
  * Redux Slice per la gestione dei materiali
  * Sostituisce la gestione SQLite locale con chiamate API
  */
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { apiClient } from '../../services/api';
 import { cacheService } from '../../services/cache';
 import toast from 'react-hot-toast';
@@ -626,6 +626,13 @@ export const selectMaterialsPagination = (state: { materials: MaterialsState }) 
 export const selectMaterialsStats = (state: { materials: MaterialsState }) => state.materials.stats;
 export const selectMaterialCategories = (state: { materials: MaterialsState }) => state.materials.categories;
 export const selectMaterialSuppliers = (state: { materials: MaterialsState }) => state.materials.suppliers;
+
+// Memoized selector for finding material by ID
+export const selectMaterialById = (materialId: string) => 
+  createSelector(
+    [selectMaterialsItems],
+    (materials) => materials.find(material => material.id === materialId)
+  );
 
 // Export additional types
 export type { MaterialsFilters, MaterialsState };

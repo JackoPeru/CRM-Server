@@ -2,7 +2,7 @@
  * Redux Slice per la gestione dei clienti
  * Sostituisce la gestione SQLite locale con chiamate API
  */
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import clientsService from '../../services/clients';
 import type { Client, CreateClientRequest } from '../../services/clients';
 
@@ -509,6 +509,13 @@ export const selectClientsError = (state: { clients: ClientsState }) => state.cl
 export const selectClientsFilters = (state: { clients: ClientsState }) => state.clients.filters;
 export const selectClientsPagination = (state: { clients: ClientsState }) => state.clients.pagination;
 export const selectClientsStats = (state: { clients: ClientsState }) => state.clients.stats;
+
+// Memoized selector for finding client by ID
+export const selectClientById = (clientId: string) => 
+  createSelector(
+    [selectClientsItems],
+    (clients) => clients.find(client => client.id === clientId)
+  );
 
 // Export types
 export type { ClientsFilters, ClientsState };

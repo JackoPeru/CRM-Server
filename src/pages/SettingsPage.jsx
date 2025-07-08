@@ -35,7 +35,7 @@ import useAuth from '../hooks/useAuth';
 const SettingsPage = () => {
   const { theme, userPreferences, changeTheme, updatePreferences, showNotification } = useUI();
   const { dataState } = useData();
-  const { updateProfile, hasRole, currentUser } = useAuth();
+  const { updateProfile, hasRole, currentUser, changePassword } = useAuth();
 
   const { user } = dataState;
   const isWorker = hasRole('worker');
@@ -103,8 +103,7 @@ const SettingsPage = () => {
   });
   const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-  // Ottieni changePassword da useAuth
-  const { changePassword } = useAuth();
+  // changePassword è già disponibile dall'hook useAuth sopra
 
   // Carica i dati del profilo utente dallo stato Redux e da currentUser
   useEffect(() => {

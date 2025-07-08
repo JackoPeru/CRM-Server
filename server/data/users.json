@@ -208,5 +208,29 @@
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
     "name": "Graziella"
+  },
+  {
+    "id": "worker_004",
+    "username": "mario",
+    "email": "mario@marmeria.com",
+    "password": "$2b$10$HyYx6Z4akO.Z1Uzf6s7uPutdICpy.3tLiPGuCVzF2oeVkXX8eFhgq",
+    "role": "worker",
+    "firstName": "Mario",
+    "lastName": "",
+    "isActive": true,
+    "permissions": [
+      "dashboard.view",
+      "projects.view",
+      "projects.edit",
+      "materials.view",
+      "materials.create",
+      "materials.edit",
+      "orders.view",
+      "orders.edit",
+      "settings.view"
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z",
+    "name": "Mario"
   }
 ]
