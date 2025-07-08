@@ -78,17 +78,14 @@ class AuthService {
 
   // Verifica se l'utente è autenticato
   isAuthenticated(): boolean {
-    console.log('[AuthService] Verifica autenticazione');
     const hasToken = !!this.getToken();
     const hasUser = !!this.getUser();
-    console.log('[AuthService] Stato autenticazione:', { hasToken, hasUser });
     return hasToken && hasUser;
   }
 
   // Ottieni token corrente
   getToken(): string | null {
     const token = localStorage.getItem(this.TOKEN_KEY);
-    console.log('[AuthService] getToken:', { token });
     return token;
   }
 
@@ -99,11 +96,8 @@ class AuthService {
 
   // Ottieni dati utente corrente
   getUser(): User | null {
-    console.log('[AuthService] Recupero dati utente');
     const userData = localStorage.getItem(this.USER_KEY);
-    console.log('[AuthService] Dati utente da localStorage:', { userData });
     if (!userData) {
-      console.log('[AuthService] Nessun dato utente trovato');
       return null;
     }
     
@@ -129,7 +123,8 @@ class AuthService {
       lastLogin: new Date().toISOString()
     };
     
-
+    // Salva il profilo utente per authSlice
+    localStorage.setItem('crm_user_profile', JSON.stringify(userProfile));
   }
 
   // Pulisci tutti i dati di autenticazione
@@ -190,6 +185,39 @@ class AuthService {
       console.error('Errore durante il refresh del token:', error);
       this.clearAuth(); // Pulisci l'autenticazione in caso di errore
       return null;
+    }
+  }
+
+  // Reset password (password dimenticata)
+  async forgotPassword(email: string): Promise<{ message: string; tempPassword?: string; note?: string }> {
+    try {
+      const response = await apiClient.post('/auth/forgot-password', { email });
+      return response.data;
+    } catch (error: any) {
+      console.error('Errore reset password:', error);
+      if (error?.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error('Errore durante il reset della password');
+      }
+    }
+  }
+
+  // Reset password tramite username e nuova password
+  async resetPassword(username: string, newPassword: string): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post('/auth/reset-password', { 
+        username, 
+        newPassword 
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Errore reset password:', error);
+      if (error?.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else {
+        throw new Error('Errore durante il reset della password');
+      }
     }
   }
 

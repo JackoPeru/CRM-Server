@@ -16,7 +16,7 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
       >
         <span className="sr-only">{label}</span>
         <span
-          className={`relative inline-block w-5 h-5 sm:w-4 sm:h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out flex items-center justify-center ${checked ? 'translate-x-5 sm:translate-x-4' : 'translate-x-0.5'}`}
+          className={`relative w-5 h-5 sm:w-4 sm:h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out flex items-center justify-center ${checked ? 'translate-x-5 sm:translate-x-4' : 'translate-x-0.5'}`}
         >
           <Moon className={`h-3 w-3 sm:h-2.5 sm:w-2.5 text-gray-600 transition-opacity duration-300 ease-in-out ${checked ? 'opacity-0' : 'opacity-100'}`} />
           <Sun className={`h-3 w-3 sm:h-2.5 sm:w-2.5 text-yellow-500 absolute transition-opacity duration-300 ease-in-out ${checked ? 'opacity-100' : 'opacity-0'}`} />
@@ -35,7 +35,7 @@ import useAuth from '../hooks/useAuth';
 const SettingsPage = () => {
   const { theme, userPreferences, changeTheme, updatePreferences, showNotification } = useUI();
   const { dataState } = useData();
-  const { updateProfile, hasRole } = useAuth();
+  const { updateProfile, hasRole, currentUser } = useAuth();
 
   const { user } = dataState;
   const isWorker = hasRole('worker');
@@ -98,11 +98,13 @@ const SettingsPage = () => {
   // Stato per i dati del profilo utente
   const [userProfile, setUserProfile] = useState({
     name: '',
-    email: ''
+    password: '',
+    currentPassword: ''
   });
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
 
-  // Ottieni currentUser da useAuth
-  const { currentUser } = useAuth();
+  // Ottieni changePassword da useAuth
+  const { changePassword } = useAuth();
 
   // Carica i dati del profilo utente dallo stato Redux e da currentUser
   useEffect(() => {
@@ -110,14 +112,32 @@ const SettingsPage = () => {
     const userData = user || {};
     
     // Usa i dati disponibili, dando priorità a currentUser che è più aggiornato
-    setUserProfile({
-      name: currentUser?.name || userData.name || '',
-      email: currentUser?.email || userData.email || ''
-    });
+    const finalName = currentUser?.name || userData.name || '';
     
-    console.log('Dati profilo caricati:', { 
-      fromCurrentUser: currentUser, 
-      fromUserData: userData 
+    // Se il nome è ancora vuoto, prova a recuperarlo dal localStorage direttamente
+    if (!finalName) {
+      const savedUserProfile = localStorage.getItem('crm_user_profile');
+      if (savedUserProfile) {
+        try {
+          const parsedProfile = JSON.parse(savedUserProfile);
+          if (parsedProfile.name) {
+            setUserProfile({
+              name: parsedProfile.name,
+              password: '',
+              currentPassword: ''
+            });
+            return;
+          }
+        } catch (e) {
+          console.error('Errore parsing localStorage:', e);
+        }
+      }
+    }
+    
+    setUserProfile({
+      name: finalName,
+      password: '', // Il campo password rimane sempre vuoto per sicurezza
+      currentPassword: ''
     });
   }, [user, currentUser]);
 
@@ -138,30 +158,76 @@ const SettingsPage = () => {
   // Funzione per salvare il profilo utente
   const saveUserProfile = async () => {
     try {
-      // Assicurati che i campi non siano vuoti prima di salvare
-      if (!userProfile.name.trim() || !userProfile.email.trim()) {
+      // Assicurati che il nome non sia vuoto
+      if (!userProfile.name.trim()) {
         showNotification({
           type: 'error',
-          message: 'Nome e email sono campi obbligatori!'
+          message: 'Il nome è un campo obbligatorio!'
         });
         return;
       }
-      
-      // Salva il profilo utente
-      await updateProfile(userProfile);
-      
-      // Mostra notifica di successo
-      showNotification({
-        type: 'success',
-        message: 'Profilo utente salvato con successo!'
-      });
-      
-      console.log('Profilo utente salvato:', userProfile);
+
+      let profileSuccess = true;
+      let passwordSuccess = true;
+
+      // Aggiorna il profilo (nome)
+      if (userProfile.name !== user?.name) {
+        profileSuccess = await updateProfile({ name: userProfile.name });
+        if (!profileSuccess) {
+          showNotification({
+            type: 'error',
+            message: 'Errore durante l\'aggiornamento del nome'
+          });
+          return;
+        }
+      }
+
+      // Se c'è una password, gestisci il cambio password separatamente
+      if (userProfile.password) {
+        if (userProfile.password.length < 6) {
+          showNotification({
+            type: 'error',
+            message: 'La password deve essere di almeno 6 caratteri!'
+          });
+          return;
+        }
+
+        if (!userProfile.currentPassword) {
+          showNotification({
+            type: 'error',
+            message: 'Inserisci la password corrente per cambiarla'
+          });
+          return;
+        }
+
+        passwordSuccess = await changePassword(userProfile.currentPassword, userProfile.password);
+        
+        if (!passwordSuccess) {
+          showNotification({
+            type: 'error',
+            message: 'Errore durante l\'aggiornamento della password. Verifica che la password corrente sia corretta.'
+          });
+          return;
+        }
+      }
+
+      if (profileSuccess && passwordSuccess) {
+        showNotification({
+          type: 'success',
+          message: userProfile.password ? 'Profilo e password aggiornati con successo!' : 'Profilo aggiornato con successo!'
+        });
+        
+        // Pulisci i campi password dopo il salvataggio
+        if (userProfile.password) {
+          setUserProfile(prev => ({ ...prev, password: '', currentPassword: '' }));
+          setShowPasswordFields(false);
+        }
+      }
     } catch (error) {
       console.error('Errore durante il salvataggio del profilo:', error);
       showNotification({
         type: 'error',
-        message: 'Errore durante il salvataggio del profilo: ' + (error.message || 'Errore sconosciuto')
+        message: 'Errore durante l\'aggiornamento del profilo'
       });
     }
   };
@@ -212,14 +278,42 @@ const SettingsPage = () => {
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Email</label>
-            <input 
-              type="email" 
-              id="email" 
-              value={userProfile.email}
-              onChange={(e) => updateUserProfile('email', e.target.value)}
-              className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target" 
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Password</label>
+              <button
+                type="button"
+                onClick={() => setShowPasswordFields(!showPasswordFields)}
+                className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 mobile-friendly-text"
+              >
+                {showPasswordFields ? 'Annulla cambio password' : 'Cambia password'}
+              </button>
+            </div>
+            {showPasswordFields && (
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Password Corrente</label>
+                  <input 
+                    type="password" 
+                    id="currentPassword" 
+                    value={userProfile.currentPassword}
+                    onChange={(e) => updateUserProfile('currentPassword', e.target.value)}
+                    placeholder="Inserisci la password corrente"
+                    className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target" 
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Nuova Password</label>
+                  <input 
+                    type="password" 
+                    id="password" 
+                    value={userProfile.password}
+                    onChange={(e) => updateUserProfile('password', e.target.value)}
+                    placeholder="Inserisci la nuova password (min 6 caratteri)"
+                    className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target" 
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <button 
             onClick={saveUserProfile}
@@ -236,13 +330,7 @@ const SettingsPage = () => {
         <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
           <Bell size={20} className="mr-2 md:mr-3 text-green-500" /> Notifiche
         </h3>
-        <AnimatedSwitch
-          id="emailNotifications"
-          checked={notificationPrefs.emailNewProjects}
-          onChange={() => toggleNotificationPref('emailNewProjects')}
-          label="Notifiche Email per Nuovi Progetti"
-        />
-        <div className="border-b border-gray-200 dark:border-gray-700"></div>
+
         <AnimatedSwitch
           id="inAppNotifications"
           checked={notificationPrefs.inAppDeadlines}

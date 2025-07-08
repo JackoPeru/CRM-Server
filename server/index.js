@@ -233,6 +233,130 @@ app.patch('/api/auth/profile', authenticateToken, (req, res) => {
   }
 });
 
+// Cambio password
+app.patch('/api/auth/password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Password corrente e nuova password richieste' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nuova password deve essere di almeno 6 caratteri' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.id === req.user.id);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'Utente non trovato' });
+    }
+    
+    // Verifica la password corrente
+    const isValidPassword = await verifyPassword(currentPassword, users[userIndex].password);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Password corrente non valida' });
+    }
+    
+    // Hash della nuova password
+    const hashedNewPassword = await hashPassword(newPassword);
+    
+    // Aggiorna la password
+    users[userIndex].password = hashedNewPassword;
+    users[userIndex].updatedAt = new Date().toISOString();
+    writeUsers(users);
+    
+    console.log('✅ Password aggiornata per utente:', users[userIndex].username);
+    res.json({ message: 'Password aggiornata con successo' });
+  } catch (error) {
+    console.error('❌ Errore cambio password:', error);
+    res.status(500).json({ error: 'Errore nel cambio password' });
+  }
+});
+
+// Reset password (password dimenticata)
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email richiesta' });
+    }
+    
+    const users = readUsers();
+    const user = users.find(u => u.email === email);
+    
+    if (!user) {
+      // Per sicurezza, non rivelare se l'email esiste o meno
+      return res.json({ message: 'Se l\'email esiste nel sistema, riceverai le istruzioni per il reset' });
+    }
+    
+    // Genera una password temporanea
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const hashedTempPassword = await hashPassword(tempPassword);
+    
+    // Aggiorna la password dell'utente
+    const userIndex = users.findIndex(u => u.id === user.id);
+    users[userIndex].password = hashedTempPassword;
+    users[userIndex].updatedAt = new Date().toISOString();
+    writeUsers(users);
+    
+    console.log(`✅ Password temporanea generata per ${user.email}: ${tempPassword}`);
+    
+    // In un'implementazione reale, qui invieresti un'email
+    // Per ora, restituiamo la password temporanea nella risposta (solo per sviluppo)
+    res.json({ 
+      message: 'Password temporanea generata con successo',
+      tempPassword: tempPassword, // RIMUOVERE IN PRODUZIONE
+      note: 'In produzione, questa password verrebbe inviata via email'
+    });
+  } catch (error) {
+    console.error('❌ Errore reset password:', error);
+    res.status(500).json({ error: 'Errore nel reset password' });
+  }
+});
+
+// Reset password tramite username e nuova password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { username, newPassword } = req.body;
+    
+    if (!username || !newPassword) {
+      return res.status(400).json({ error: 'Username e nuova password richiesti' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
+    }
+    
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.username === username);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'Username non trovato' });
+    }
+    
+    // Hash della nuova password
+    const hashedNewPassword = await hashPassword(newPassword);
+    
+    // Aggiorna la password dell'utente
+    users[userIndex].password = hashedNewPassword;
+    users[userIndex].updatedAt = new Date().toISOString();
+    writeUsers(users);
+    
+    console.log(`✅ Password aggiornata per l'utente: ${username}`);
+    
+    res.json({ 
+      message: 'Password aggiornata con successo'
+    });
+  } catch (error) {
+    console.error('❌ Errore reset password:', error);
+    res.status(500).json({ error: 'Errore nel reset password' });
+  }
+});
+
 // GESTIONE UTENTI (solo admin)
 app.get('/api/users', authenticateToken, requireRole('admin'), (req, res) => {
   try {

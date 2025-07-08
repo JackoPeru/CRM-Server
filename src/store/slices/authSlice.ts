@@ -223,6 +223,32 @@ export const checkAuthStatus = createAsyncThunk<
 
 
 /**
+ * Aggiorna la password dell'utente
+ */
+export const updatePassword = createAsyncThunk<
+  void,
+  { currentPassword: string; newPassword: string },
+  { rejectValue: string }
+>(
+  'auth/updatePassword',
+  async (passwordData, { rejectWithValue }) => {
+    try {
+      // Invia la richiesta di aggiornamento password
+      await apiClient.patch('/auth/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      
+      return;
+    } catch (error: any) {
+      console.error('Errore aggiornamento password:', error);
+      const message = error.response?.data?.message || error.message || 'Errore durante l\'aggiornamento della password';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
  * Aggiorna il profilo utente
  */
 export const updateUserProfile = createAsyncThunk<
@@ -459,6 +485,21 @@ const authSlice = createSlice({
         state.error = typeof action.payload === 'string' ? action.payload : 'Sessione non valida';
       });
     
+    // Update Password
+    builder
+      .addCase(updatePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(updatePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Errore durante l\'aggiornamento della password';
+      });
+
     // Update User Profile
     builder
       .addCase(updateUserProfile.pending, (state) => {
