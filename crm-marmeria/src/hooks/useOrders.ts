@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllOrders, selectOrdersLoading, selectOrdersError, selectSelectedOrder, selectOrdersPagination, selectOrdersFilters, selectOrdersStats, selectVoiceBotOrderStatus } from '../store';
+import { selectOrderById } from '../store/slices/ordersSlice';
 import {
   fetchOrders,
   createOrder,
@@ -33,6 +34,27 @@ export const useOrders = () => {
   useEffect(() => {
     dispatch(fetchOrders());
     dispatch(fetchOrdersStats());
+  }, [dispatch]);
+
+  // Listener per aggiornamenti dati dall'AI Assistant
+  useEffect(() => {
+    const handleAIDataUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { type, action, data } = customEvent.detail;
+      console.log('useOrders: Ricevuto aggiornamento AI:', { type, action, data });
+      
+      if (type === 'quotes' || type === 'projects' || type === 'orders' || type === 'invoices') {
+        // Ricarica i dati degli ordini/preventivi/fatture
+        dispatch(fetchOrders());
+        dispatch(fetchOrdersStats());
+      }
+    };
+
+    window.addEventListener('ai-data-updated', handleAIDataUpdate);
+    
+    return () => {
+      window.removeEventListener('ai-data-updated', handleAIDataUpdate);
+    };
   }, [dispatch]);
 
   /**
@@ -144,8 +166,8 @@ export const useOrders = () => {
    * Trova un ordine per ID
    */
   const getOrderById = useCallback((id: string) => {
-    return orders.find(order => order.id === id);
-  }, [orders]);
+    return useAppSelector(state => selectOrderById(id)(state));
+  }, []);
 
   return {
     // Stato

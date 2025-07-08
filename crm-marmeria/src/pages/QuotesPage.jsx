@@ -19,6 +19,23 @@ const QuotesPage = () => {
     setBreadcrumbs([{ label: 'Preventivi' }]);
   }, [setBreadcrumbs]);
 
+  // Listener per aggiornamenti dati dall'AI Assistant
+  useEffect(() => {
+    const handleAIDataUpdate = (event) => {
+      const { type, action, data } = event.detail;
+      console.log('QuotesPage: Ricevuto aggiornamento AI:', { type, action, data });
+      
+      // I dati verranno aggiornati automaticamente tramite i listener negli hook useClients e useOrders
+      // Non è necessario fare nulla qui, solo loggare per debug
+    };
+
+    window.addEventListener('ai-data-updated', handleAIDataUpdate);
+    
+    return () => {
+      window.removeEventListener('ai-data-updated', handleAIDataUpdate);
+    };
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [currentQuote, setCurrentQuote] = useState(null);
   const [quoteToView, setQuoteToView] = useState(null);
@@ -131,7 +148,7 @@ const QuotesPage = () => {
     setCurrentQuote({ 
       ...quote, 
       date: quote.date ? new Date(quote.date).toISOString().split('T')[0] : '',
-      items: quote.items.map(item => ({...item, materialId: item.materialId || ''}))
+      items: (quote.items || [{ description: '', quantity: 1, unitPrice: 0, materialId: '' }]).map(item => ({...item, materialId: item.materialId || ''}))
     });
     showModal({ id: 'editQuote', type: 'edit' });
   };
@@ -164,7 +181,7 @@ const QuotesPage = () => {
 
   const handleUpdateQuote = (e) => {
     e.preventDefault();
-    const updatedQuote = { ...currentQuote, type: 'quote', total: calculateTotal(currentQuote.items) };
+    const updatedQuote = { ...currentQuote, type: 'quote', total: calculateTotal(currentQuote.items || []) };
     updateQuote(currentQuote.id, updatedQuote);
     hideModal('editQuote');
     setCurrentQuote(null);
@@ -536,7 +553,7 @@ const QuotesPage = () => {
               </div>
 
               <h3 className="text-md font-semibold mb-2 mt-4 mobile-friendly-text">Voci del Preventivo</h3>
-              {currentQuote.items.map((item, index) => (
+              {(currentQuote.items || []).map((item, index) => (
                 <div key={index} className="lg:grid lg:grid-cols-12 lg:gap-2 mb-2 lg:items-center">
                   {/* Layout mobile: card */}
                   <div className="lg:hidden bg-light-bg/30 dark:bg-dark-input/30 p-3 rounded-lg border border-light-border dark:border-dark-border mb-3">
@@ -602,7 +619,7 @@ const QuotesPage = () => {
                       <span className="block p-2 text-sm mobile-friendly-text">€ {(item.quantity * item.unitPrice).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     <div className="col-span-1 flex items-end">
-                      {currentQuote.items.length > 1 && (
+                      {(currentQuote.items || []).length > 1 && (
                         <button type="button" onClick={() => handleCurrentQuoteRemoveItem(index)} className="p-1 text-red-500 hover:text-red-700 touch-target">
                           <Trash className="w-4 h-4" />
                         </button>
@@ -616,7 +633,7 @@ const QuotesPage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label htmlFor="edit-total" className="block text-sm font-medium mb-2 mobile-friendly-text">Totale Preventivo</label>
-                    <p className="text-xl font-semibold p-3 lg:p-2 mobile-friendly-text">€ {calculateTotal(currentQuote.items).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-semibold p-3 lg:p-2 mobile-friendly-text">€ {calculateTotal(currentQuote.items || []).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div>
                   <label htmlFor="edit-status" className="block text-sm font-medium mb-2 mobile-friendly-text">Stato *</label>
@@ -681,7 +698,7 @@ const QuotesPage = () => {
             
             {/* Layout mobile: card */}
             <div className="lg:hidden space-y-3 mb-4">
-              {quoteToView.items.map((item, index) => (
+              {(quoteToView.items || []).map((item, index) => (
                 <div key={index} className="bg-light-bg/30 dark:bg-dark-input/30 p-3 rounded-lg border border-light-border dark:border-dark-border">
                   <div className="space-y-2">
                     <div>
@@ -719,7 +736,7 @@ const QuotesPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {quoteToView.items.map((item, index) => (
+                        {(quoteToView.items || []).map((item, index) => (
                             <tr key={index} className="border-b border-light-border dark:border-dark-border last:border-b-0">
                                 <td className="p-2 mobile-friendly-text">{item.description}</td>
                                 <td className="p-2 text-right mobile-friendly-text">{item.quantity}</td>
@@ -733,9 +750,9 @@ const QuotesPage = () => {
 
             <div className="flex justify-end mb-6">
                 <div className="text-right">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Subtotale: € {quoteToView.total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Subtotale: € {(quoteToView.total || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     {/* Qui si potrebbero aggiungere IVA, sconti etc. */} 
-                    <p className="text-xl font-bold">Totale: € {quoteToView.total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-bold">Totale: € {(quoteToView.total || 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
             </div>
 

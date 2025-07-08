@@ -2,7 +2,7 @@
  * Configurazione del Redux Store con Redux Toolkit
  * Integra tutti i slice per la gestione dello stato dell'applicazione
  */
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, createSelector } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
 
 // Import dei slice
@@ -120,24 +120,42 @@ export const selectGlobalSearch = (state: RootState) => state.ui.globalSearch;
 export const selectBreadcrumbs = (state: RootState) => state.ui.breadcrumb;
 export const selectToasts = (state: RootState) => state.ui.toasts;
 
-// Selettori combinati per dashboard
-export const selectDashboardData = (state: RootState) => ({
-  isAuthenticated: state.auth.isAuthenticated,
-  user: state.auth.user,
-  clients: state.clients.items,
-  orders: state.orders.items,
-  materials: state.materials.items,
-  dailySummary: state.analytics.dailySummary,
-  isOnline: state.ui.isOnline,
-  loading: state.auth.loading || state.clients.loading || state.orders.loading || state.analytics.loading,
-});
+// Selettori combinati per dashboard (memoizzati)
+export const selectDashboardData = createSelector(
+  [(state: RootState) => state.auth.isAuthenticated,
+   (state: RootState) => state.auth.user,
+   (state: RootState) => state.clients.items,
+   (state: RootState) => state.orders.items,
+   (state: RootState) => state.materials.items,
+   (state: RootState) => state.analytics.dailySummary,
+   (state: RootState) => state.ui.isOnline,
+   (state: RootState) => state.auth.loading,
+   (state: RootState) => state.clients.loading,
+   (state: RootState) => state.orders.loading,
+   (state: RootState) => state.analytics.loading],
+  (isAuthenticated, user, clients, orders, materials, dailySummary, isOnline, authLoading, clientsLoading, ordersLoading, analyticsLoading) => ({
+    isAuthenticated,
+    user,
+    clients,
+    orders,
+    materials,
+    dailySummary,
+    isOnline,
+    loading: authLoading || clientsLoading || ordersLoading || analyticsLoading,
+  })
+);
 
-// Selettori per voice-bot
-export const selectVoiceBotData = (state: RootState) => ({
-  todaySummary: state.analytics.voiceBotCache.todaySummary,
-  orderStatusCache: state.orders.voiceBotCache.orderStatus,
-  isOnline: state.ui.isOnline,
-});
+// Selettori per voice-bot (memoizzati)
+export const selectVoiceBotData = createSelector(
+  [(state: RootState) => state.analytics.voiceBotCache.todaySummary,
+   (state: RootState) => state.orders.voiceBotCache.orderStatus,
+   (state: RootState) => state.ui.isOnline],
+  (todaySummary, orderStatusCache, isOnline) => ({
+    todaySummary,
+    orderStatusCache,
+    isOnline,
+  })
+);
 
 
 

@@ -6,6 +6,7 @@ import {
   refreshToken,
   checkAuthStatus,
   updateUserProfile,
+  updatePassword,
   clearAuthError,
 } from '../store/slices/authSlice';
 import type { LoginCredentials, User } from '../store/slices/authSlice';
@@ -44,6 +45,14 @@ export const useAuth = () => {
    */
   const updateProfile = async (userData: Partial<User>) => {
     const result = await dispatch(updateUserProfile(userData));
+    return result.meta.requestStatus === 'fulfilled';
+  };
+
+  /**
+   * Aggiorna la password dell'utente
+   */
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const result = await dispatch(updatePassword({ currentPassword, newPassword }));
     return result.meta.requestStatus === 'fulfilled';
   };
 
@@ -99,6 +108,7 @@ export const useAuth = () => {
     login,
     logout,
     updateProfile,
+    changePassword,
     clearError,
     forceRefreshToken,
     

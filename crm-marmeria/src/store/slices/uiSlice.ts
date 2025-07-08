@@ -2,7 +2,7 @@
  * Redux Slice per la gestione dello stato UI
  * Gestisce tema, notifiche, modali, sidebar e altri elementi dell'interfaccia
  */
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit';
 
 // Interfacce per lo stato UI
 export interface NotificationSettings {
@@ -430,11 +430,15 @@ export const selectModalById = (modalId: string) =>
 export const selectTableState = (tableId: string) => 
   (state: { ui: UIState }) => state.ui.tables[tableId];
 
-export const selectActiveToasts = (state: { ui: UIState }) => 
-  state.ui.toasts.filter(toast => !toast.persistent || toast.duration === undefined);
+export const selectActiveToasts = createSelector(
+  [(state: { ui: UIState }) => state.ui.toasts],
+  (toasts) => toasts.filter(toast => !toast.persistent || toast.duration === undefined)
+);
 
-export const selectPersistentToasts = (state: { ui: UIState }) => 
-  state.ui.toasts.filter(toast => toast.persistent);
+export const selectPersistentToasts = createSelector(
+  [(state: { ui: UIState }) => state.ui.toasts],
+  (toasts) => toasts.filter(toast => toast.persistent)
+);
 
 // Export reducer
 export default uiSlice.reducer;

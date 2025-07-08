@@ -6,10 +6,10 @@
     "deadline": "2025-07-05",
     "budget": "€ 2,00",
     "status": "In Corso",
-    "client": "Cliente non specificato",
+    "client": "Mario Rossi",
     "id": "1751616900089bfx7e94l6",
     "createdAt": "2025-07-04T08:15:00.089Z",
-    "updatedAt": "2025-07-07T07:53:01.558Z",
+    "updatedAt": "2025-07-08T10:47:35.474Z",
     "images": [
       {
         "id": "17516182438383f3lqkz7u",
@@ -49,7 +49,13 @@
       "username": "alex",
       "name": "alex",
       "assignedAt": "2025-07-07T07:53:01.558Z"
-    }
+    },
+    "title": "a",
+    "clientName": "Cliente non specificato",
+    "endDate": "2025-07-05",
+    "amount": 2,
+    "materials": [],
+    "type": "project"
   },
   {
     "name": "b",
@@ -57,11 +63,11 @@
     "startDate": "2025-07-05",
     "deadline": "2025-07-05",
     "budget": "€ 5,00",
-    "status": "In Corso",
+    "status": "Completato",
     "client": "Cliente non specificato",
     "id": "1751616918000yj4r2o5rf",
     "createdAt": "2025-07-04T08:15:18.000Z",
-    "updatedAt": "2025-07-04T13:47:27.916Z",
+    "updatedAt": "2025-07-08T10:21:12.722Z",
     "images": [
       {
         "id": "1751626725127zsc9zyr6m",
@@ -72,12 +78,7 @@
         "uploadedAt": "2025-07-04T10:58:45.127Z"
       }
     ],
-    "assignedWorker": {
-      "id": "worker_001",
-      "username": "mario",
-      "name": "mario",
-      "assignedAt": "2025-07-04T13:47:27.916Z"
-    }
+    "assignedWorker": null
   },
   {
     "name": "c",
@@ -85,11 +86,11 @@
     "startDate": "2025-07-10",
     "deadline": "2025-07-10",
     "budget": "€ 4,00",
-    "status": "In Corso",
-    "client": "Cliente non specificato",
+    "status": "Annullato",
+    "client": "Luca Verdi",
     "id": "17516169342333acuqv5es",
     "createdAt": "2025-07-04T08:15:34.233Z",
-    "updatedAt": "2025-07-04T13:54:40.066Z",
+    "updatedAt": "2025-07-08T10:47:47.146Z",
     "images": [
       {
         "id": "1751617875164xxnpor3r5",
@@ -105,7 +106,13 @@
       "username": "ettore",
       "name": "ettore",
       "assignedAt": "2025-07-04T13:54:40.067Z"
-    }
+    },
+    "title": "c",
+    "clientName": "Cliente non specificato",
+    "endDate": "2025-07-10",
+    "amount": 4,
+    "materials": [],
+    "type": "project"
   },
   {
     "name": "d",
@@ -113,11 +120,11 @@
     "startDate": "2025-07-05",
     "deadline": "2025-07-06",
     "budget": "€ 4,00",
-    "status": "In Attesa",
-    "client": "Cliente non specificato",
+    "status": "Completato",
+    "client": "Luca Verdi",
     "id": "1751616950400jq7m80vd9",
     "createdAt": "2025-07-04T08:15:50.400Z",
-    "updatedAt": "2025-07-04T13:16:01.502Z",
+    "updatedAt": "2025-07-08T10:47:42.918Z",
     "images": [
       {
         "id": "1751617923576zjj3gu6gx",
@@ -144,7 +151,13 @@
         "uploadedAt": "2025-07-04T08:41:04.093Z"
       }
     ],
-    "assignedWorker": null
+    "assignedWorker": null,
+    "title": "d",
+    "clientName": "Cliente non specificato",
+    "endDate": "2025-07-06",
+    "amount": 4,
+    "materials": [],
+    "type": "project"
   },
   {
     "date": "2025-07-04",
@@ -171,14 +184,14 @@
     "updatedAt": "2025-07-04T13:58:43.158Z"
   },
   {
-    "date": "2025-07-04",
-    "customerId": null,
+    "date": "2025-07-08",
+    "customerId": "17519814098969l949clgm",
     "projectId": null,
     "items": [
       {
-        "description": "dsv",
+        "description": "Preventivo generato a scopo di test",
         "quantity": 1,
-        "unitPrice": 0,
+        "unitPrice": 1500,
         "materialId": ""
       }
     ],
@@ -186,10 +199,32 @@
     "status": "Bozza",
     "validityDays": 30,
     "type": "quote",
-    "quoteNumber": "PREV-2025-001",
-    "total": 0,
-    "id": "1751638596555epgk489jp",
-    "createdAt": "2025-07-04T14:16:36.555Z",
-    "updatedAt": "2025-07-04T14:16:36.555Z"
+    "quoteNumber": "PREV-2025-153",
+    "total": 1500,
+    "createdAt": "2025-07-08T13:30:09.904Z",
+    "id": "1751981409904nvexyfsxq",
+    "updatedAt": "2025-07-08T13:30:09.904Z"
+  },
+  {
+    "date": "2025-07-08",
+    "customerId": "17519816874433v6n8qjnf",
+    "projectId": null,
+    "items": [
+      {
+        "description": "Vasca in marmo (escluso trasporto e posa)",
+        "quantity": 1,
+        "unitPrice": 5000,
+        "materialId": ""
+      }
+    ],
+    "notes": "",
+    "status": "Bozza",
+    "validityDays": 30,
+    "type": "quote",
+    "quoteNumber": "PREV-2025-007",
+    "total": 5000,
+    "createdAt": "2025-07-08T13:34:47.450Z",
+    "id": "1751981687450vct2p0epw",
+    "updatedAt": "2025-07-08T13:34:47.450Z"
   }
 ]

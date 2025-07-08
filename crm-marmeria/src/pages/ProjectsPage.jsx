@@ -16,15 +16,34 @@ const ProjectsPage = () => {
     hideModal, 
     tableFilters, 
     setTableFilter, 
-    setBreadcrumbs 
+    setBreadcrumbs,
+    userPreferences,
+    updatePreferences
   } = useUI();
   const { projects, customers, addProject, updateProject, updateProjectStatus, deleteProject } = useData();
-  const { hasRole } = useAuth();
+  const { hasRole, token } = useAuth();
   const isWorker = hasRole('worker');
+  const isAdmin = hasRole('admin');
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Progetti' }]);
   }, [setBreadcrumbs]);
+
+  // Effetto per applicare il filtro automatico dalla dashboard
+  useEffect(() => {
+    if (userPreferences.applyProjectFilter && userPreferences.projectStatusFilter) {
+      setStatusFilter(userPreferences.projectStatusFilter);
+      setShowFilters(true); // Mostra i filtri per far vedere all'utente che è attivo
+      
+      // Rimuovi il flag per evitare che il filtro venga riapplicato dopo un breve delay
+      setTimeout(() => {
+        updatePreferences({ 
+          applyProjectFilter: false,
+          projectStatusFilter: null 
+        });
+      }, 100);
+    }
+  }, [userPreferences.applyProjectFilter, userPreferences.projectStatusFilter, updatePreferences]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentProject, setCurrentProject] = useState(null);
@@ -50,7 +69,6 @@ const ProjectsPage = () => {
   };
 
   const uploadProjectImages = async (projectId, images) => {
-    const { token } = useAuth();
     const formData = new FormData();
     images.forEach(file => {
       formData.append('images', file);
@@ -220,7 +238,7 @@ const ProjectsPage = () => {
     <div className="p-3 md:p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-3">
         <h1 className="text-xl md:text-2xl font-semibold mobile-friendly-text">Progetti</h1>
-        {useAuth().hasRole('admin') && (
+        {isAdmin && (
           <button 
             onClick={() => showModal({ id: 'addProject', type: 'add' })}
             className="w-full sm:w-auto touch-target px-4 py-2 bg-light-primary hover:bg-light-primary/90 dark:bg-dark-primary dark:hover:bg-dark-primary/90 text-white rounded-md flex items-center justify-center gap-2"
@@ -690,7 +708,7 @@ const ProjectsPage = () => {
         </div>
       )}
 
-      {isModalOpen('editProject') && projectToEdit && (
+      {isModalOpen('editProject') && currentProject && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-2 md:p-4 z-50">
           <div className="modal-content bg-white dark:bg-dark-card rounded-lg shadow-xl p-4 md:p-6 w-full max-w-lg">
             <div className="flex justify-between items-center mb-4">

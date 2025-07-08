@@ -3,6 +3,7 @@ import { Menu, User, Settings, LogOut, Wifi, WifiOff, RefreshCw, UserCircle, Che
 import Icon from '../common/Icon';
 import useUI from '../../hooks/useUI';
 import { useAuth } from '../../hooks/useAuth';
+import AIAssistantButton from '../AIAssistant/AIAssistantButton';
 
 const Header = () => {
   const { theme, toggleTheme, userPreferences, toggleSidebar } = useUI();
@@ -45,6 +46,12 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Pulsante Assistente IA */}
+          <AIAssistantButton 
+            variant="icon" 
+            size="md" 
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
           
           <button
             onClick={toggleTheme}

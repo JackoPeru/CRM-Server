@@ -38,5 +38,23 @@
     "id": "17518953908087hsz5n425",
     "createdAt": "2025-07-07T13:36:30.808Z",
     "updatedAt": "2025-07-07T13:36:30.808Z"
+  },
+  {
+    "name": "Mario Rossi",
+    "email": "mario.rossi@example.com",
+    "phone": "1234567890",
+    "type": "individual",
+    "id": "17519814098969l949clgm",
+    "createdAt": "2025-07-08T13:30:09.896Z",
+    "updatedAt": "2025-07-08T13:30:09.896Z"
+  },
+  {
+    "name": "Luigino",
+    "email": "",
+    "phone": "",
+    "type": "individual",
+    "id": "17519816874433v6n8qjnf",
+    "createdAt": "2025-07-08T13:34:47.443Z",
+    "updatedAt": "2025-07-08T13:34:47.443Z"
   }
 ]

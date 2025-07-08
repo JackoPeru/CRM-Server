@@ -4,13 +4,31 @@ import useUI from '../hooks/useUI';
 import { useAuth } from '../hooks/useAuth';
 
 const StatCard = ({ title, value, icon: Icon, bgColor, textColor, targetPage, filters }) => {
-  const { updatePreferences } = useUI();
+  const { updatePreferences, setTableFilter } = useUI();
 
   const handleClick = () => {
-    if (filters) {
-      // TODO: Implementare filtri se necessario
+    if (targetPage) {
+      // Aggiorna immediatamente la pagina corrente
+      updatePreferences({ currentPage: targetPage });
+      
+      // Se ci sono filtri da applicare
+      if (filters) {
+        setTableFilter(targetPage, filters);
+        
+        // Per i progetti, imposta anche i filtri specifici
+        if (targetPage === 'projects' && filters.status) {
+          updatePreferences({ 
+            projectStatusFilter: filters.status,
+            applyProjectFilter: true 
+          });
+        }
+      }
+      
+      // Forza un re-render per assicurarsi che la navigazione avvenga
+      setTimeout(() => {
+        updatePreferences({ currentPage: targetPage });
+      }, 10);
     }
-    updatePreferences({ currentPage: targetPage });
   };
 
   return (

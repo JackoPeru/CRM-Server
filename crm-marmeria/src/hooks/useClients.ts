@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllClients, selectClientsLoading, selectClientsError, selectSelectedClient, selectClientsPagination, selectClientsFilters, selectClientsStats } from '../store';
+import { selectClientById } from '../store/slices/clientsSlice';
 import {
   fetchClients,
   createClient,
@@ -31,6 +32,27 @@ export const useClients = () => {
   useEffect(() => {
     dispatch(fetchClients());
     dispatch(fetchClientsStats());
+  }, [dispatch]);
+
+  // Listener per aggiornamenti dati dall'AI Assistant
+  useEffect(() => {
+    const handleAIDataUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { type, action, data } = customEvent.detail;
+      console.log('useClients: Ricevuto aggiornamento AI:', { type, action, data });
+      
+      if (type === 'clients') {
+        // Ricarica i dati dei clienti
+        dispatch(fetchClients());
+        dispatch(fetchClientsStats());
+      }
+    };
+
+    window.addEventListener('ai-data-updated', handleAIDataUpdate);
+    
+    return () => {
+      window.removeEventListener('ai-data-updated', handleAIDataUpdate);
+    };
   }, [dispatch]);
 
   /**
@@ -118,8 +140,8 @@ export const useClients = () => {
    * Trova un cliente per ID
    */
   const getClientById = useCallback((id: string) => {
-    return clients.find(client => client.id === id);
-  }, [clients]);
+    return useAppSelector(state => selectClientById(id)(state));
+  }, []);
 
   // Funzione per verificare se l'utente ha i permessi necessari
   const checkPermission = useCallback(() => {

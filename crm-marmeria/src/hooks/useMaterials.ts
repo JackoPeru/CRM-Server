@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector, selectAllMaterials, selectMaterialsLoading, selectMaterialsError, selectSelectedMaterial, selectMaterialsPagination, selectMaterialsFilters, selectMaterialsStats, selectMaterialCategories, selectMaterialSuppliers } from '../store';
+import { selectMaterialById } from '../store/slices/materialsSlice';
 import {
   fetchMaterials,
   createMaterial,
@@ -123,8 +124,8 @@ export const useMaterials = () => {
    * Trova un materiale per ID
    */
   const getMaterialById = useCallback((id: string) => {
-    return materials.find(material => material.id === id);
-  }, [materials]);
+    return useAppSelector(state => selectMaterialById(id)(state));
+  }, []);
 
   /**
    * Ricarica categorie e fornitori
