@@ -30,23 +30,13 @@
     "updatedAt": "2024-02-01T09:45:00.000Z"
   },
   {
-    "name": "c",
+    "name": "Prova connessione ",
     "email": "",
     "phone": "",
     "address": "",
     "type": "Privato",
-    "id": "17513834216745rmahoyof",
-    "createdAt": "2025-07-01T15:23:41.674Z",
-    "updatedAt": "2025-07-01T15:23:41.674Z"
-  },
-  {
-    "name": "c",
-    "email": "",
-    "phone": "",
-    "address": "",
-    "type": "Privato",
-    "id": "1751383431252rbyrahkg5",
-    "createdAt": "2025-07-01T15:23:51.252Z",
-    "updatedAt": "2025-07-01T15:23:51.252Z"
+    "id": "17518953908087hsz5n425",
+    "createdAt": "2025-07-07T13:36:30.808Z",
+    "updatedAt": "2025-07-07T13:36:30.808Z"
   }
 ]

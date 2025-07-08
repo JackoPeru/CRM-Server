@@ -350,7 +350,7 @@ class AnalyticsService {
       const revenue = todayOrders
         .filter((order: any) => order.status === 'Completato')
         .reduce((sum: number, order: any) => sum + (order.amount || 0), 0);
-      const activeProjects = todayOrders.filter((order: any) => order.status === 'In Lavorazione').length;
+      const activeProjects = todayOrders.filter((order: any) => order.status === 'In Corso').length;
       const urgentTasks = todayOrders.filter((order: any) => order.priority === 'Urgente').length;
 
       return {

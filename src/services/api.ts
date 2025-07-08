@@ -4,25 +4,13 @@
  */
 import axios, { AxiosInstance } from 'axios';
 import toast from 'react-hot-toast';
+import { authService } from './auth';  // Importa l'istanza singleton di AuthService
 
 // Interfacce TypeScript
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
 
-interface RefreshResponse {
-  accessToken: string;
-  refreshToken?: string;
-}
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
-  private isRefreshing = false;
-  private failedQueue: Array<{
-    resolve: (value: string) => void;
-    reject: (error: any) => void;
-  }> = [];
 
   constructor() {
     // Legge l'URL base dalle variabili d'ambiente
@@ -53,46 +41,55 @@ class ApiClient {
         return config;
       },
       (error) => {
+        console.error('Errore nell\'interceptor di richiesta:', error);
         return Promise.reject(error);
       }
     );
 
-    // Response interceptor - gestisce il refresh del token
+    // Response interceptor - gestisce errori di autenticazione e permessi
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            // Se è già in corso un refresh, mette in coda la richiesta
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            }).then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return this.axiosInstance(originalRequest);
-            }).catch((err) => {
-              return Promise.reject(err);
-            });
-          }
-
+        
+        // Se è un errore 401 (Unauthorized) e non è già un retry
+        if (error.response?.status === 401 && !originalRequest?._retry) {
           originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            const newToken = await this.refreshAccessToken();
-            this.processQueue(null, newToken);
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return this.axiosInstance(originalRequest);
-          } catch (refreshError) {
-            this.processQueue(refreshError, null);
+          
+          // Se siamo sulla pagina di login, non tentare il refresh del token
+          if (window.location.pathname.includes('login')) {
+            console.error('Errore di autenticazione durante il login:', error.response?.data);
             this.handleAuthError();
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
+            return Promise.reject(error);
           }
+          
+          console.error('Errore di autenticazione (401), logout in corso.');
+          this.handleAuthError();
+          // Non reindirizzare qui, lascia che sia l'UI a gestire il cambio di stato
+          // basato su isAuthenticated.
+          return Promise.reject(error);
         }
-
+        
+        // Gestione errori 403 (Forbidden) - permessi insufficienti
+        if (error.response?.status === 403) {
+          console.error('Errore di permessi:', error.response?.data);
+          // Mostra notifica solo se non è già stata mostrata di recente
+          const lastPermissionError = localStorage.getItem('lastPermissionErrorToast');
+          const now = Date.now();
+          
+          if (!lastPermissionError || (now - parseInt(lastPermissionError)) > 30000) { // 30 secondi
+            toast.error('Permessi insufficienti per questa operazione', {
+              duration: 5000,
+              id: 'permission-error' // Previene duplicati
+            });
+            localStorage.setItem('lastPermissionErrorToast', now.toString());
+          }
+          
+          // Aggiungiamo informazioni dettagliate all'errore per una migliore gestione a livello Redux
+          error.permissionDenied = true;
+          error.permissionMessage = 'Non hai i permessi necessari per eseguire questa operazione';
+        }
+        
         // Gestione errori di rete - notifica ridotta per evitare spam
         if (error.code === 'ERR_NETWORK') {
           // Mostra notifica solo se non è già stata mostrata di recente
@@ -106,152 +103,49 @@ class ApiClient {
             });
             localStorage.setItem('lastNetworkErrorToast', now.toString());
           }
+          
+          // Emetti un evento per notificare l'app dello stato offline
+          window.dispatchEvent(new CustomEvent('app:offline'));
+        } else if (error.response && error.response.status !== 403) { // Evitiamo di loggare due volte gli errori 403
+          console.error(`Errore API ${error.response.status}:`, error.response.data);
         }
-
+        
         return Promise.reject(error);
       }
     );
   }
 
-  /**
-   * Processa la coda delle richieste in attesa del refresh
-   */
-  private processQueue(error: any, token: string | null): void {
-    this.failedQueue.forEach(({ resolve, reject }) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(token!);
-      }
-    });
-    
-    this.failedQueue = [];
-  }
+
 
   /**
    * Ottiene il token di accesso dal localStorage
    */
   private getAccessToken(): string | null {
     try {
-      const tokens = localStorage.getItem('authTokens');
-      if (tokens) {
-        const parsed: AuthTokens = JSON.parse(tokens);
-        return parsed.accessToken;
-      }
+      // Usa la stessa chiave del servizio di autenticazione
+      return localStorage.getItem('crm_auth_token');
     } catch (error) {
       console.error('Errore nel recupero del token:', error);
     }
     return null;
   }
 
-  /**
-   * Ottiene il refresh token dal localStorage
-   */
-  private getRefreshToken(): string | null {
-    try {
-      const tokens = localStorage.getItem('authTokens');
-      if (tokens) {
-        const parsed: AuthTokens = JSON.parse(tokens);
-        return parsed.refreshToken;
-      }
-    } catch (error) {
-      console.error('Errore nel recupero del refresh token:', error);
-    }
-    return null;
-  }
 
-  /**
-   * Salva i token nel localStorage
-   */
-  private saveTokens(tokens: AuthTokens): void {
-    localStorage.setItem('authTokens', JSON.stringify(tokens));
-  }
-
-  /**
-   * Rimuove i token dal localStorage
-   */
-  private clearTokens(): void {
-    localStorage.removeItem('authTokens');
-  }
-
-  /**
-   * Effettua il refresh del token di accesso
-   */
-  private async refreshAccessToken(): Promise<string> {
-    const refreshToken = this.getRefreshToken();
-    
-    if (!refreshToken) {
-      throw new Error('Refresh token non disponibile');
-    }
-
-    try {
-      const response = await axios.post<RefreshResponse>(
-        `${this.axiosInstance.defaults.baseURL}/auth/refresh`,
-        { refreshToken }
-      );
-
-      const { accessToken, refreshToken: newRefreshToken } = response.data;
-      
-      // Salva i nuovi token
-      this.saveTokens({
-        accessToken,
-        refreshToken: newRefreshToken || refreshToken,
-      });
-
-      return accessToken;
-    } catch (error) {
-      console.error('Errore nel refresh del token:', error);
-      throw error;
-    }
-  }
 
   /**
    * Gestisce gli errori di autenticazione
    */
   private handleAuthError(): void {
-    this.clearTokens();
-    toast.error('Sessione scaduta. Effettua nuovamente il login.');
-    // TODO: Redirect al login
-    window.location.href = '/login';
+    // Pulisci il token dal localStorage
+    localStorage.removeItem('crm_auth_token');
+    localStorage.removeItem('crm_user_data');
+    // Rimuovi anche il profilo utente utilizzato da authSlice
+    localStorage.removeItem('crm_user_profile');
+    // Non ricaricare automaticamente la pagina per evitare loop infiniti
+    // Lascia che sia l'AuthContext a gestire il cambio di stato
   }
 
-  /**
-   * Effettua il login
-   */
-  async login(email: string, password: string): Promise<AuthTokens> {
-    try {
-      const response = await this.axiosInstance.post<AuthTokens>('/auth/login', {
-        email,
-        password,
-      });
 
-      this.saveTokens(response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Errore nel login:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Effettua il logout
-   */
-  async logout(): Promise<void> {
-    try {
-      await this.axiosInstance.post('/auth/logout');
-    } catch (error) {
-      console.error('Errore nel logout:', error);
-    } finally {
-      this.clearTokens();
-    }
-  }
-
-  /**
-   * Verifica se l'utente è autenticato
-   */
-  isAuthenticated(): boolean {
-    return !!this.getAccessToken();
-  }
 
   /**
    * Restituisce l'istanza Axios configurata
@@ -260,8 +154,61 @@ class ApiClient {
     return this.axiosInstance;
   }
 
+  /**
+   * Metodo GET
+   */
+  async get(url: string, config?: any) {
+    return this.axiosInstance.get(url, config);
+  }
+
+  /**
+   * Metodo POST
+   */
+  async post(url: string, data?: any, config?: any) {
+    return this.axiosInstance.post(url, data, config);
+  }
+
+  /**
+   * Metodo PUT
+   */
+  async put(url: string, data?: any, config?: any) {
+    return this.axiosInstance.put(url, data, config);
+  }
+
+  /**
+   * Metodo DELETE
+   */
+  async delete(url: string, config?: any) {
+    return this.axiosInstance.delete(url, config);
+  }
+
+  /**
+   * Metodo PATCH
+   */
+  async patch(url: string, data?: any, config?: any) {
+    return this.axiosInstance.patch(url, data, config);
+  }
 
 }
+
+// Aggiungi un listener per quando l'app torna online
+window.addEventListener('online', () => {
+  console.log('App tornata online');
+  toast.success('Connessione ristabilita');
+  
+  // Emetti un evento per notificare l'app dello stato online
+  window.dispatchEvent(new CustomEvent('app:online'));
+  
+  // Ritenta le operazioni in sospeso
+  import('./clients').then(module => {
+    const clientsService = module.default;
+    if (clientsService && typeof clientsService.retryPendingOperations === 'function') {
+      clientsService.retryPendingOperations();
+    }
+  }).catch(err => {
+    console.error('Errore nel caricamento del servizio clienti:', err);
+  });
+});
 
 // Istanza singleton dell'API client
 export const apiClient = new ApiClient();

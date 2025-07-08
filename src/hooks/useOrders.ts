@@ -13,6 +13,7 @@ import {
   clearOrdersError,
 } from '../store/slices/ordersSlice';
 import type { Order, OrdersFilters } from '../store/slices/ordersSlice';
+import { ordersService } from '../services/orders';
 
 /**
  * Hook personalizzato per gestire gli ordini
@@ -50,9 +51,9 @@ export const useOrders = () => {
       // Ricarica la lista dopo l'aggiunta
       dispatch(fetchOrders());
       dispatch(fetchOrdersStats());
-      return true;
+      return result.payload; // Restituisce il progetto/ordine creato
     }
-    return false;
+    return null;
   }, [dispatch]);
 
   /**
@@ -67,6 +68,22 @@ export const useOrders = () => {
       return true;
     }
     return false;
+  }, [dispatch]);
+
+  /**
+   * Aggiorna solo lo stato di un ordine/progetto
+   */
+  const updateOrderStatus = useCallback(async (id: string, status: Order['status']) => {
+    try {
+      await ordersService.updateOrderStatus(id, status);
+      // Ricarica la lista dopo l'aggiornamento
+      dispatch(fetchOrders());
+      dispatch(fetchOrdersStats());
+      return true;
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento stato:', error);
+      return false;
+    }
   }, [dispatch]);
 
   /**
@@ -144,6 +161,7 @@ export const useOrders = () => {
     refetch,
     addOrder,
     updateOrder: updateOrderData,
+    updateOrderStatus,
     removeOrder,
     searchOrders: searchOrderData,
     getOrderStatusForVoiceBot,

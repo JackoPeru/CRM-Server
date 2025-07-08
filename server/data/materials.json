@@ -4,12 +4,13 @@
     "name": "Marmo Carrara",
     "category": "marmo",
     "price": 500,
-    "unit": "mq",
+    "unit": "2 mq",
     "stock": 25,
     "description": "Marmo bianco di Carrara di alta qualità",
     "supplier": "Cave di Carrara SRL",
     "createdAt": "2024-01-10T09:00:00.000Z",
-    "updatedAt": "2024-01-10T09:00:00.000Z"
+    "updatedAt": "2025-07-03T13:12:42.873Z",
+    "unitPrice": 5001
   },
   {
     "id": "mat_002",
@@ -46,18 +47,5 @@
     "supplier": "Pietre Preziose SPA",
     "createdAt": "2024-01-18T16:45:00.000Z",
     "updatedAt": "2024-01-18T16:45:00.000Z"
-  },
-  {
-    "name": "dv",
-    "description": "",
-    "unit": "ds",
-    "unitPrice": 4,
-    "supplier": "",
-    "category": "dv",
-    "stockQuantity": 0,
-    "minStockLevel": 0,
-    "id": "1751383469491lpvi6e204",
-    "createdAt": "2025-07-01T15:24:29.491Z",
-    "updatedAt": "2025-07-01T15:24:29.491Z"
   }
 ]

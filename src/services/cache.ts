@@ -40,45 +40,65 @@ class CacheService {
   private readonly DB_NAME = 'crmCache';
   private readonly DB_VERSION = 1;
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minuti
+  private initPromise: Promise<void> | null = null;
 
   /**
    * Inizializza il database IndexedDB
+   * Utilizza un pattern singleton per garantire una sola inizializzazione
    */
   async init(): Promise<void> {
-    try {
-      this.db = await openDB<CrmCacheDB>(this.DB_NAME, this.DB_VERSION, {
-        upgrade(db) {
-          // Crea gli store se non esistono
-          if (!db.objectStoreNames.contains('customers')) {
-            db.createObjectStore('customers', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('projects')) {
-            db.createObjectStore('projects', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('orders')) {
-            db.createObjectStore('orders', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('materials')) {
-            db.createObjectStore('materials', { keyPath: 'id' });
-          }
-          if (!db.objectStoreNames.contains('analytics')) {
-            db.createObjectStore('analytics', { keyPath: 'id' });
-          }
-        },
-      });
-      console.log('Cache IndexedDB inizializzato con successo');
-    } catch (error) {
-      console.error('Errore nell\'inizializzazione del cache:', error);
-      throw error;
+    // Se l'inizializzazione è già in corso, ritorna la promise esistente
+    if (this.initPromise) {
+      return this.initPromise;
     }
+    
+    // Crea una nuova promise di inizializzazione
+    this.initPromise = new Promise<void>(async (resolve, reject) => {
+      try {
+        this.db = await openDB<CrmCacheDB>(this.DB_NAME, this.DB_VERSION, {
+          upgrade(db) {
+            // Crea gli store se non esistono
+            if (!db.objectStoreNames.contains('customers')) {
+              db.createObjectStore('customers', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('projects')) {
+              db.createObjectStore('projects', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('orders')) {
+              db.createObjectStore('orders', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('materials')) {
+              db.createObjectStore('materials', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('analytics')) {
+              db.createObjectStore('analytics', { keyPath: 'id' });
+            }
+          },
+        });
+        console.log('Cache IndexedDB inizializzato con successo');
+        resolve();
+      } catch (error) {
+        console.error('Errore nell\'inizializzazione del cache:', error);
+        this.initPromise = null; // Reset della promise in caso di errore
+        reject(error);
+      }
+    });
+    
+    return this.initPromise;
   }
 
   /**
    * Verifica se il database è inizializzato
+   * Se non lo è, tenta di inizializzarlo automaticamente
    */
-  private ensureDB(): void {
+  private async ensureDB(): Promise<void> {
     if (!this.db) {
-      throw new Error('Database cache non inizializzato. Chiamare init() prima.');
+      try {
+        await this.init();
+      } catch (error) {
+        console.error('Errore nell\'inizializzazione automatica del cache:', error);
+        throw new Error('Database cache non inizializzato. Chiamare init() prima.');
+      }
     }
   }
 
@@ -91,7 +111,7 @@ class CacheService {
     data: T,
     ttl?: number
   ): Promise<void> {
-    this.ensureDB();
+    await this.ensureDB();
     
     const entry: CacheEntry<T> = {
       id: key,
@@ -116,7 +136,7 @@ class CacheService {
     store: keyof CrmCacheDB,
     key: string
   ): Promise<T | null> {
-    this.ensureDB();
+    await this.ensureDB();
 
     try {
       const entry = await this.db!.get(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics', key);
@@ -143,7 +163,7 @@ class CacheService {
    * Recupera tutti i dati di uno store
    */
   async getAll<T>(store: keyof CrmCacheDB): Promise<T[]> {
-    this.ensureDB();
+    await this.ensureDB();
 
     try {
       const entries = await this.db!.getAll(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics');
@@ -169,7 +189,7 @@ class CacheService {
    * Elimina un elemento dal cache
    */
   async delete(store: keyof CrmCacheDB, key: string): Promise<void> {
-    this.ensureDB();
+    await this.ensureDB();
 
     try {
       await this.db!.delete(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics', key);
@@ -183,7 +203,7 @@ class CacheService {
    * Pulisce tutto il cache di uno store
    */
   async clear(store: keyof CrmCacheDB): Promise<void> {
-    this.ensureDB();
+    await this.ensureDB();
 
     try {
       await this.db!.clear(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics');
@@ -197,7 +217,7 @@ class CacheService {
    * Pulisce tutto il database cache
    */
   async clearAll(): Promise<void> {
-    this.ensureDB();
+    await this.ensureDB();
 
     const stores: (keyof CrmCacheDB)[] = [
       'customers',
@@ -231,7 +251,7 @@ class CacheService {
    * Pulisce automaticamente gli elementi scaduti
    */
   async cleanExpired(): Promise<void> {
-    this.ensureDB();
+    await this.ensureDB();
 
     const stores: (keyof CrmCacheDB)[] = [
       'customers',
@@ -263,7 +283,7 @@ class CacheService {
     stores: Record<keyof CrmCacheDB, number>;
     totalSize: number;
   }> {
-    this.ensureDB();
+    await this.ensureDB();
 
     const stats: Record<keyof CrmCacheDB, number> = {
       customers: 0,

@@ -3,6 +3,8 @@ const path = require('path');
 const DataSharingServer = require('./server.cjs');
 const isDev = process.env.NODE_ENV === 'development';
 
+
+
 // Istanza del server di condivisione dati
 let dataSharingServer = null;
 
@@ -24,10 +26,13 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.webContents.openDevTools();
   }
 }
 
 app.whenReady().then(() => {
+  
+
   createWindow();
   
   // Inizializza il server di condivisione dati
@@ -56,6 +61,9 @@ app.on('activate', () => {
 // Funzione per controllare e avviare il server se necessario
 function checkAndStartServer() {
   try {
+    console.log('Controllo preferenze di rete disabilitato temporaneamente');
+    // Disabilitato temporaneamente per debug
+    /*
     const fs = require('fs');
     const userDataPath = app.getPath('userData');
     const prefsPath = path.join(userDataPath, 'network-prefs.json');
@@ -74,6 +82,7 @@ function checkAndStartServer() {
           });
       }
     }
+    */
   } catch (error) {
     console.error('Errore nel controllo delle preferenze di rete:', error);
   }

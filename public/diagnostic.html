@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostica CRM Marmeria</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        .success { color: #4CAF50; font-weight: bold; }
+        .error { color: #f44336; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+        .info { color: #2196F3; font-weight: bold; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .log { 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostica Avanzata CRM Marmeria</h1>
+        <p>Questa pagina esegue test diagnostici per identificare problemi di caricamento.</p>
+        
+        <div class="test-section">
+            <h3>📊 Stato Sistema</h3>
+            <div id="system-status">⏳ Controllo in corso...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Test Moduli</h3>
+            <div id="module-tests">⏳ Test in corso...</div>
+            <button onclick="testModules()">🔄 Ripeti Test Moduli</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🌐 Test Connettività</h3>
+            <div id="connectivity-tests">⏳ Test in corso...</div>
+            <button onclick="testConnectivity()">🔄 Test Connettività</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Log Console</h3>
+            <div id="console-log" class="log"></div>
+            <button onclick="clearLog()">🗑️ Pulisci Log</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🚀 Azioni</h3>
+            <button onclick="window.open('/', '_blank')">🏠 Apri App Principale</button>
+            <button onclick="window.open('/debug-react.html', '_blank')">🧪 Test React</button>
+            <button onclick="window.location.reload()">🔄 Ricarica Diagnostica</button>
+        </div>
+    </div>
+    
+    <script>
+        let logContainer = document.getElementById('console-log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logContainer.textContent += logEntry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            console.log(`[Diagnostic] ${message}`);
+        }
+        
+        function clearLog() {
+            logContainer.textContent = '';
+        }
+        
+        async function checkSystemStatus() {
+            const statusDiv = document.getElementById('system-status');
+            let status = [];
+            
+            // Check browser
+            status.push(`<span class="info">🌐 Browser:</span> ${navigator.userAgent}`);
+            status.push(`<span class="info">📱 Platform:</span> ${navigator.platform}`);
+            status.push(`<span class="info">🔗 URL:</span> ${window.location.href}`);
+            status.push(`<span class="info">⏰ Timestamp:</span> ${new Date().toLocaleString()}`);
+            
+            // Check localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                status.push(`<span class="success">✅ LocalStorage:</span> Funzionante`);
+            } catch (e) {
+                status.push(`<span class="error">❌ LocalStorage:</span> ${e.message}`);
+            }
+            
+            // Check IndexedDB
+            try {
+                if ('indexedDB' in window) {
+                    status.push(`<span class="success">✅ IndexedDB:</span> Supportato`);
+                } else {
+                    status.push(`<span class="error">❌ IndexedDB:</span> Non supportato`);
+                }
+            } catch (e) {
+                status.push(`<span class="error">❌ IndexedDB:</span> ${e.message}`);
+            }
+            
+            statusDiv.innerHTML = status.join('<br>');
+            log('Sistema controllato');
+        }
+        
+        async function testModules() {
+            const testDiv = document.getElementById('module-tests');
+            let results = [];
+            
+            log('Inizio test moduli...');
+            
+            // Test React import
+            try {
+                const React = await import('/node_modules/react/index.js');
+                results.push(`<span class="success">✅ React:</span> Caricato (v${React.version || 'unknown'})`);
+                log('React importato con successo');
+            } catch (e) {
+                results.push(`<span class="error">❌ React:</span> ${e.message}`);
+                log(`Errore React: ${e.message}`);
+            }
+            
+            // Test ReactDOM import
+            try {
+                await import('/node_modules/react-dom/client.js');
+                results.push(`<span class="success">✅ ReactDOM:</span> Caricato`);
+                log('ReactDOM importato con successo');
+            } catch (e) {
+                results.push(`<span class="error">❌ ReactDOM:</span> ${e.message}`);
+                log(`Errore ReactDOM: ${e.message}`);
+            }
+            
+            // Test main.jsx
+            try {
+                await import('/src/main.jsx');
+                results.push(`<span class="success">✅ main.jsx:</span> Caricato`);
+                log('main.jsx importato con successo');
+            } catch (e) {
+                results.push(`<span class="error">❌ main.jsx:</span> ${e.message}`);
+                log(`Errore main.jsx: ${e.message}`);
+            }
+            
+            testDiv.innerHTML = results.join('<br>');
+            log('Test moduli completato');
+        }
+        
+        async function testConnectivity() {
+            const testDiv = document.getElementById('connectivity-tests');
+            let results = [];
+            
+            log('Inizio test connettività...');
+            
+            // Test server locale
+            try {
+                const response = await fetch('/');
+                if (response.ok) {
+                    results.push(`<span class="success">✅ Server Locale:</span> Raggiungibile (${response.status})`);
+                } else {
+                    results.push(`<span class="warning">⚠️ Server Locale:</span> Status ${response.status}`);
+                }
+                log(`Server locale: ${response.status}`);
+            } catch (e) {
+                results.push(`<span class="error">❌ Server Locale:</span> ${e.message}`);
+                log(`Errore server locale: ${e.message}`);
+            }
+            
+            // Test backend API
+            try {
+                const response = await fetch('http://localhost:3001/api/health');
+                if (response.ok) {
+                    results.push(`<span class="success">✅ Backend API:</span> Raggiungibile`);
+                } else {
+                    results.push(`<span class="warning">⚠️ Backend API:</span> Status ${response.status}`);
+                }
+                log(`Backend API: ${response.status}`);
+            } catch (e) {
+                results.push(`<span class="error">❌ Backend API:</span> ${e.message}`);
+                log(`Backend API non raggiungibile: ${e.message}`);
+            }
+            
+            testDiv.innerHTML = results.join('<br>');
+            log('Test connettività completato');
+        }
+        
+        // Intercetta errori
+        window.addEventListener('error', (event) => {
+            log(`ERRORE: ${event.error?.message || event.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            log(`PROMISE REJECTION: ${event.reason}`, 'error');
+        });
+        
+        // Avvia diagnostica
+        log('🔍 Diagnostica CRM Marmeria avviata');
+        checkSystemStatus();
+        testModules();
+        testConnectivity();
+    </script>
+</body>
+</html>

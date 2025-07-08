@@ -6,12 +6,17 @@ import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import useUI from '../hooks/useUI';
 import { useData } from '../hooks/useData';
+import { useAuth } from '../hooks/useAuth';
+import { useDashboard } from '../hooks/useDashboard';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const DashboardPage = () => {
   const { setBreadcrumbs } = useUI();
   const { customers, projects, updateProject, deleteProject } = useData();
+  const { hasRole } = useAuth();
+  const { mainMetrics } = useDashboard();
+  const isWorker = hasRole('worker');
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Dashboard' }]);
@@ -62,7 +67,7 @@ const DashboardPage = () => {
     customers: customers?.length || 0,
     projects: projects?.length || 0,
     projectsInProgress: projects?.filter(p => p.status === 'In Corso').length || 0,
-    materials: 0, // Placeholder
+    materials: mainMetrics?.totalMaterials || 0,
     revenue: '€ 0.00', // Placeholder
   };
 
@@ -247,7 +252,7 @@ const DashboardPage = () => {
                 <li key={project.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-md hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-700 dark:text-gray-300">Cliente: {project.client}</p>
+                      {!isWorker && <p className="font-medium text-gray-700 dark:text-gray-300">Cliente: {project.client}</p>}
                       <p className="text-sm text-gray-500 dark:text-gray-400">Data: {project.date}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Stato: {project.status}</p>
                     </div>
@@ -280,7 +285,7 @@ const DashboardPage = () => {
             </div>
             <div className="space-y-3 text-sm text-light-text dark:text-dark-text">
               <p><strong>ID:</strong> {projectToView.id}</p>
-              <p><strong>Cliente:</strong> {projectToView.client}</p>
+              {!isWorker && <p><strong>Cliente:</strong> {projectToView.client}</p>}
               <p><strong>Data Inizio:</strong> {projectToView.date}</p>
               <p><strong>Descrizione:</strong> {projectToView.description || 'N/D'}</p>
               <p><strong>Stato:</strong> {projectToView.status}</p>

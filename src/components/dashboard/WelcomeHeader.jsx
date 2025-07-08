@@ -3,8 +3,8 @@ import { useAuth } from '../../hooks/useAuth';
 
 const WelcomeHeader = () => {
   const { currentUser } = useAuth();
-  const userName = currentUser?.name || 'Utente';
-  const formattedName = userName.trim() || 'Utente';
+  const userName = currentUser ? currentUser.name : 'Utente';
+  const formattedName = userName || 'Utente';
   const currentHour = new Date().getHours();
   
   let greeting = 'Buongiorno';

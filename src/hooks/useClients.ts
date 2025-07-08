@@ -25,6 +25,7 @@ export const useClients = () => {
   const pagination = useAppSelector(selectClientsPagination);
   const filters = useAppSelector(selectClientsFilters);
   const stats = useAppSelector(selectClientsStats);
+  const permissionDenied = useAppSelector(state => state.clients.permissionDenied);
 
   // Carica i clienti all'avvio
   useEffect(() => {
@@ -120,6 +121,15 @@ export const useClients = () => {
     return clients.find(client => client.id === id);
   }, [clients]);
 
+  // Funzione per verificare se l'utente ha i permessi necessari
+  const checkPermission = useCallback(() => {
+    if (permissionDenied) {
+      // Mostra un messaggio di errore più evidente per problemi di permessi
+      return false;
+    }
+    return true;
+  }, [permissionDenied]);
+
   return {
     // Stato
     clients,
@@ -128,6 +138,7 @@ export const useClients = () => {
     pagination,
     filters,
     stats,
+    permissionDenied,
     
     // Azioni
     refetch,
@@ -139,6 +150,7 @@ export const useClients = () => {
     setPage,
     clearError,
     getClientById,
+    checkPermission
   };
 };
 

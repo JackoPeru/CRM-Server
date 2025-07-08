@@ -12,21 +12,14 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
         id={id}
         onClick={onChange}
         type="button"
-        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-dark-bg ${checked ? 'bg-indigo-600 focus:ring-indigo-500' : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400'}`}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 sm:h-5 sm:w-9 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-dark-bg ${checked ? 'bg-indigo-600 focus:ring-indigo-500' : 'bg-gray-300 dark:bg-gray-600 focus:ring-gray-400'}`}
       >
         <span className="sr-only">{label}</span>
         <span
-          className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out ${checked ? 'translate-x-6' : 'translate-x-1'}`}
-        />
-        <span
-          className={`absolute inset-y-0 left-0 flex items-center justify-center w-5 h-full transition-opacity duration-300 ease-in-out ${checked ? 'opacity-0' : 'opacity-100'}`}
+          className={`relative inline-block w-5 h-5 sm:w-4 sm:h-4 transform bg-white rounded-full transition-transform duration-300 ease-in-out flex items-center justify-center ${checked ? 'translate-x-5 sm:translate-x-4' : 'translate-x-0.5'}`}
         >
-          <Moon className="h-3 w-3 text-gray-500 ml-1" />
-        </span>
-        <span
-          className={`absolute inset-y-0 right-0 flex items-center justify-center w-5 h-full transition-opacity duration-300 ease-in-out ${checked ? 'opacity-100' : 'opacity-0'}`}
-        >
-          <Sun className="h-3 w-3 text-yellow-400 mr-1" />
+          <Moon className={`h-3 w-3 sm:h-2.5 sm:w-2.5 text-gray-600 transition-opacity duration-300 ease-in-out ${checked ? 'opacity-0' : 'opacity-100'}`} />
+          <Sun className={`h-3 w-3 sm:h-2.5 sm:w-2.5 text-yellow-500 absolute transition-opacity duration-300 ease-in-out ${checked ? 'opacity-100' : 'opacity-0'}`} />
         </span>
       </button>
     </div>
@@ -37,12 +30,15 @@ const AnimatedSwitch = ({ id, checked, onChange, label }) => {
 import DataManager from '../components/DataManager';
 import useUI from '../hooks/useUI';
 import { useData } from '../hooks/useData';
+import useAuth from '../hooks/useAuth';
 
 const SettingsPage = () => {
   const { theme, userPreferences, changeTheme, updatePreferences, showNotification } = useUI();
-  const { dataState, updateUser } = useData();
+  const { dataState } = useData();
+  const { updateProfile, hasRole } = useAuth();
 
   const { user } = dataState;
+  const isWorker = hasRole('worker');
   
   // Stato locale per le preferenze UI
   const [uiPrefs, setUiPrefs] = useState({
@@ -101,19 +97,29 @@ const SettingsPage = () => {
 
   // Stato per i dati del profilo utente
   const [userProfile, setUserProfile] = useState({
-    username: '',
+    name: '',
     email: ''
   });
 
-  // Carica i dati del profilo utente dallo stato Redux
+  // Ottieni currentUser da useAuth
+  const { currentUser } = useAuth();
+
+  // Carica i dati del profilo utente dallo stato Redux e da currentUser
   useEffect(() => {
-    if (user) {
-      setUserProfile({
-        username: user.name || 'Mario Rossi',
-        email: user.email || 'mario.rossi@example.com'
-      });
-    }
-  }, [user]);
+    // Ottieni i dati sia da user che da currentUser per garantire la coerenza
+    const userData = user || {};
+    
+    // Usa i dati disponibili, dando priorità a currentUser che è più aggiornato
+    setUserProfile({
+      name: currentUser?.name || userData.name || '',
+      email: currentUser?.email || userData.email || ''
+    });
+    
+    console.log('Dati profilo caricati:', { 
+      fromCurrentUser: currentUser, 
+      fromUserData: userData 
+    });
+  }, [user, currentUser]);
 
   // Sincronizza le preferenze UI con lo stato globale
   useEffect(() => {
@@ -130,9 +136,34 @@ const SettingsPage = () => {
 
 
   // Funzione per salvare il profilo utente
-  const saveUserProfile = () => {
-    updateUser(userProfile);
-    alert('Profilo utente salvato con successo!');
+  const saveUserProfile = async () => {
+    try {
+      // Assicurati che i campi non siano vuoti prima di salvare
+      if (!userProfile.name.trim() || !userProfile.email.trim()) {
+        showNotification({
+          type: 'error',
+          message: 'Nome e email sono campi obbligatori!'
+        });
+        return;
+      }
+      
+      // Salva il profilo utente
+      await updateProfile(userProfile);
+      
+      // Mostra notifica di successo
+      showNotification({
+        type: 'success',
+        message: 'Profilo utente salvato con successo!'
+      });
+      
+      console.log('Profilo utente salvato:', userProfile);
+    } catch (error) {
+      console.error('Errore durante il salvataggio del profilo:', error);
+      showNotification({
+        type: 'error',
+        message: 'Errore durante il salvataggio del profilo: ' + (error.message || 'Errore sconosciuto')
+      });
+    }
   };
 
   // Funzione per aggiornare i campi del profilo
@@ -147,12 +178,12 @@ const SettingsPage = () => {
 
   return (
     <div className="p-4 md:p-8 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text min-h-screen">
-      <h2 className="text-3xl font-semibold mb-8 text-gray-800 dark:text-gray-100">Impostazioni Applicazione</h2>
+      <h2 className="text-2xl md:text-3xl font-semibold mb-6 md:mb-8 text-gray-800 dark:text-gray-100 mobile-friendly-text">Impostazioni Applicazione</h2>
 
       {/* Sezione Aspetto */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Palette size={24} className="mr-3 text-indigo-500" /> Aspetto
+      <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <Palette size={20} className="mr-2 md:mr-3 text-indigo-500" /> Aspetto
         </h3>
         <AnimatedSwitch 
           id="darkMode"
@@ -165,44 +196,45 @@ const SettingsPage = () => {
       </div>
 
       {/* Sezione Profilo Utente */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <User size={24} className="mr-3 text-blue-500" /> Profilo Utente
+      <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <User size={20} className="mr-2 md:mr-3 text-blue-500" /> Profilo Utente
         </h3>
         <div className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Nome Utente</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Nome Utente</label>
             <input 
               type="text" 
-              id="username" 
-              value={userProfile.username}
-              onChange={(e) => updateUserProfile('username', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" 
+              id="name" 
+              value={userProfile.name}
+              onChange={(e) => updateUserProfile('name', e.target.value)}
+              className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target" 
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Email</label>
             <input 
               type="email" 
               id="email" 
               value={userProfile.email}
               onChange={(e) => updateUserProfile('email', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500" 
+              className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target" 
             />
           </div>
           <button 
             onClick={saveUserProfile}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+            className="w-full md:w-auto px-4 py-3 md:py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md mobile-friendly-text touch-target"
           >
             Salva Modifiche Profilo
           </button>
         </div>
-      </div>
+        </div>
+      
 
       {/* Sezione Notifiche */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Bell size={24} className="mr-3 text-green-500" /> Notifiche
+      <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <Bell size={20} className="mr-2 md:mr-3 text-green-500" /> Notifiche
         </h3>
         <AnimatedSwitch
           id="emailNotifications"
@@ -221,51 +253,83 @@ const SettingsPage = () => {
 
 
 
-      {/* Sezione Gestione Dati */}
-      <DataManager />
+      {/* Sezione Gestione Dati - Solo per Admin */}
+      {!isWorker && <DataManager />}
 
-      {/* Sezione Preferenze Dati */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Database size={24} className="mr-3 text-purple-500" /> Preferenze Dati
+      {/* Sezione Preferenze Dati - Solo per Admin */}
+      {!isWorker && (
+        <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <Database size={20} className="mr-2 md:mr-3 text-purple-500" /> Preferenze Dati
         </h3>
         <div className="space-y-4">
-          <div>
-            <label htmlFor="customerCodePrefix" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Prefisso Codice Cliente</label>
-            <input 
-              type="text" 
-              id="customerCodePrefix" 
-              value={dataPrefs.customerCodePrefix}
-              onChange={(e) => updateDataPref('customerCodePrefix', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="projectCodePrefix" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Prefisso Codice Progetto</label>
-            <input 
-              type="text" 
-              id="projectCodePrefix" 
-              value={dataPrefs.projectCodePrefix}
-              onChange={(e) => updateDataPref('projectCodePrefix', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
+           <div>
+             <label htmlFor="customerCodePrefix" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Prefisso Codice Cliente</label>
+             <input 
+               type="text" 
+               id="customerCodePrefix" 
+               value={dataPrefs.customerCodePrefix}
+               onChange={(e) => updateDataPref('customerCodePrefix', e.target.value)}
+               className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+             />
+           </div>
+           <div>
+             <label htmlFor="projectCodePrefix" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Prefisso Codice Progetto</label>
+             <input 
+               type="text" 
+               id="projectCodePrefix" 
+               value={dataPrefs.projectCodePrefix}
+               onChange={(e) => updateDataPref('projectCodePrefix', e.target.value)}
+               className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+             />
+           </div>
+           <div className="flex items-center justify-between">
+             <div>
+               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Modalità Sviluppatore</label>
+               <p className="text-xs text-gray-400 dark:text-gray-500 mobile-friendly-text">Abilita funzionalità avanzate per sviluppatori</p>
+             </div>
+             <label className="relative inline-flex items-center cursor-pointer">
+               <input 
+                 type="checkbox" 
+                 checked={dataPrefs.developerMode}
+                 onChange={(e) => updateDataPref('developerMode', e.target.checked)}
+                 className="sr-only peer"
+               />
+               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+             </label>
+           </div>
+           <div className="flex items-center justify-between">
+             <div>
+               <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Debug Mode</label>
+               <p className="text-xs text-gray-400 dark:text-gray-500 mobile-friendly-text">Mostra informazioni di debug nell'interfaccia</p>
+             </div>
+             <label className="relative inline-flex items-center cursor-pointer">
+               <input 
+                 type="checkbox" 
+                 checked={dataPrefs.debugMode}
+                 onChange={(e) => updateDataPref('debugMode', e.target.checked)}
+                 className="sr-only peer"
+               />
+               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+             </label>
+           </div>
+         </div>
         </div>
-      </div>
+      )}
 
       {/* Sezione Preferenze di Formattazione */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <CalendarDays size={24} className="mr-3 text-teal-500" /> Preferenze di Formattazione
+      <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <CalendarDays size={20} className="mr-2 md:mr-3 text-teal-500" /> Preferenze di Formattazione
         </h3>
         <div className="space-y-4">
           <div>
-            <label htmlFor="dateFormat" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Formato Data</label>
+            <label htmlFor="dateFormat" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Formato Data</label>
             <select 
               id="dateFormat" 
               value={formattingPrefs.dateFormat}
               onChange={(e) => updateFormattingPref('dateFormat', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
             >
               <option value="dd/MM/yyyy">GG/MM/AAAA (es. 31/12/2023)</option>
               <option value="MM/dd/yyyy">MM/GG/AAAA (es. 12/31/2023)</option>
@@ -274,12 +338,12 @@ const SettingsPage = () => {
             </select>
           </div>
           <div>
-            <label htmlFor="currencySymbol" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Simbolo Valuta</label>
+            <label htmlFor="currencySymbol" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Simbolo Valuta</label>
             <select 
               id="currencySymbol" 
               value={formattingPrefs.currencySymbol}
               onChange={(e) => updateFormattingPref('currencySymbol', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
             >
               <option value="€">Euro (€)</option>
               <option value="$">Dollaro ($)</option>
@@ -289,100 +353,104 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* Sezione Impostazioni Fiscali */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <FileDigit size={24} className="mr-3 text-orange-500" /> Impostazioni Fiscali
-        </h3>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="vatNumber" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Partita IVA</label>
-            <input 
-              type="text" 
-              id="vatNumber" 
-              value={fiscalPrefs.vatNumber}
-              onChange={(e) => updateFiscalPref('vatNumber', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="taxCode" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Codice Fiscale</label>
-            <input 
-              type="text" 
-              id="taxCode" 
-              value={fiscalPrefs.taxCode}
-              onChange={(e) => updateFiscalPref('taxCode', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="defaultTaxRate" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Aliquota IVA Predefinita (%)</label>
-            <input 
-              type="number" 
-              id="defaultTaxRate" 
-              value={fiscalPrefs.defaultTaxRate}
-              onChange={(e) => updateFiscalPref('defaultTaxRate', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+      {/* Sezione Impostazioni Fiscali - Solo per Admin */}
+       {!isWorker && (
+         <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+            <FileDigit size={20} className="mr-2 md:mr-3 text-orange-500" /> Impostazioni Fiscali
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="vatNumber" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Partita IVA</label>
+              <input 
+                type="text" 
+                id="vatNumber" 
+                value={fiscalPrefs.vatNumber}
+                onChange={(e) => updateFiscalPref('vatNumber', e.target.value)}
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
+            <div>
+              <label htmlFor="taxCode" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Codice Fiscale</label>
+              <input 
+                type="text" 
+                id="taxCode" 
+                value={fiscalPrefs.taxCode}
+                onChange={(e) => updateFiscalPref('taxCode', e.target.value)}
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
+            <div>
+              <label htmlFor="defaultTaxRate" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Aliquota IVA Predefinita (%)</label>
+              <input 
+                type="number" 
+                id="defaultTaxRate" 
+                value={fiscalPrefs.defaultTaxRate}
+                onChange={(e) => updateFiscalPref('defaultTaxRate', e.target.value)}
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
           </div>
         </div>
-      </div>
+       )}
 
-      {/* Sezione Impostazioni di Stampa */}
-      <div className="mb-10 p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Printer size={24} className="mr-3 text-cyan-500" /> Impostazioni di Stampa
-        </h3>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="logoUrl" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">URL Logo Aziendale (per stampe)</label>
-            <input 
-              type="text" 
-              id="logoUrl" 
-              value={printPrefs.logoUrl}
-              onChange={(e) => updatePrintPref('logoUrl', e.target.value)}
-              placeholder="https://esempio.com/logo.png"
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="printHeader" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Intestazione Predefinita Stampe</label>
-            <textarea 
-              id="printHeader" 
-              rows="3"
-              value={printPrefs.printHeader}
-              onChange={(e) => updatePrintPref('printHeader', e.target.value)}
-              placeholder="Testo da visualizzare nell'intestazione dei documenti stampati..."
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="printFooter" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Piè di Pagina Predefinito Stampe</label>
-            <textarea 
-              id="printFooter" 
-              rows="3"
-              value={printPrefs.printFooter}
-              onChange={(e) => updatePrintPref('printFooter', e.target.value)}
-              placeholder="Testo da visualizzare nel piè di pagina dei documenti stampati (es. Ragione Sociale, P.IVA, Contatti)..."
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+      {/* Sezione Impostazioni di Stampa - Solo per Admin */}
+       {!isWorker && (
+         <div className="mb-6 md:mb-10 p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+          <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+            <Printer size={20} className="mr-2 md:mr-3 text-cyan-500" /> Impostazioni di Stampa
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="logoUrl" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">URL Logo Aziendale (per stampe)</label>
+              <input 
+                type="text" 
+                id="logoUrl" 
+                value={printPrefs.logoUrl}
+                onChange={(e) => updatePrintPref('logoUrl', e.target.value)}
+                placeholder="https://esempio.com/logo.png"
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
+            <div>
+              <label htmlFor="printHeader" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Intestazione Predefinita Stampe</label>
+              <textarea 
+                id="printHeader" 
+                rows="3"
+                value={printPrefs.printHeader}
+                onChange={(e) => updatePrintPref('printHeader', e.target.value)}
+                placeholder="Testo da visualizzare nell'intestazione dei documenti stampati..."
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
+            <div>
+              <label htmlFor="printFooter" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Piè di Pagina Predefinito Stampe</label>
+              <textarea 
+                id="printFooter" 
+                rows="3"
+                value={printPrefs.printFooter}
+                onChange={(e) => updatePrintPref('printFooter', e.target.value)}
+                placeholder="Testo da visualizzare nel piè di pagina dei documenti stampati (es. Ragione Sociale, P.IVA, Contatti)..."
+                className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target"
+              />
+            </div>
           </div>
         </div>
-      </div>
+       )}
 
       {/* Sezione Lingua e Regione (Placeholder) */}
-      <div className="p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
-        <h3 className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
-          <Globe size={24} className="mr-3 text-yellow-500" /> Lingua e Regione
+      <div className="p-4 md:p-6 bg-white dark:bg-dark-card rounded-lg shadow-md">
+        <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center mobile-friendly-text">
+          <Globe size={20} className="mr-2 md:mr-3 text-yellow-500" /> Lingua e Regione
         </h3>
         <div>
-          <label htmlFor="language" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Lingua</label>
-          <select id="language" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+          <label htmlFor="language" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 mobile-friendly-text">Lingua</label>
+          <select id="language" className="w-full p-3 md:p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-indigo-500 focus:border-indigo-500 mobile-friendly-text touch-target">
             <option>Italiano</option>
             <option>English (Placeholder)</option>
           </select>
         </div>
-        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 mobile-friendly-text">
           Altre impostazioni regionali e di lingua verranno aggiunte qui.
         </p>
       </div>

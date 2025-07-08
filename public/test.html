@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CRM Marmeria</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test CRM Marmeria</h1>
+        <div class="status success">
+            ✅ Server Vite funziona correttamente!
+        </div>
+        <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+        <p><strong>URL corrente:</strong> <span id="current-url"></span></p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+        
+        <h2>Test API Backend</h2>
+        <div id="api-status" class="status">⏳ Testando connessione API...</div>
+        <div id="api-result"></div>
+        
+        <h2>Azioni</h2>
+        <button onclick="testAPI()">🔄 Riprova Test API</button>
+        <button onclick="location.href='/'">🏠 Vai all'App Principale</button>
+    </div>
+
+    <script>
+        // Aggiorna timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        
+        // Test API
+        async function testAPI() {
+            const statusDiv = document.getElementById('api-status');
+            const resultDiv = document.getElementById('api-result');
+            
+            statusDiv.textContent = '⏳ Testando connessione API...';
+            statusDiv.className = 'status';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('http://192.168.1.2:3001/api/health');
+                const data = await response.json();
+                
+                statusDiv.textContent = '✅ API Backend raggiungibile!';
+                statusDiv.className = 'status success';
+                resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                statusDiv.textContent = '❌ Errore connessione API';
+                statusDiv.className = 'status error';
+                resultDiv.innerHTML = `<p>Errore: ${error.message}</p>`;
+            }
+        }
+        
+        // Esegui test automatico
+        testAPI();
+    </script>
+</body>
+</html>
