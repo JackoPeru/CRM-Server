@@ -3,19 +3,18 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTo
 import { BarChart2 } from 'lucide-react';
 import Card from '../common/Card';
 import Icon from '../common/Icon';
-import useLocalStorage from '../../hooks/useLocalStorage';
+import { useData } from '../../hooks/useData';
 
 const STATUS_COLORS = {
-  Preventivo: '#A0AEC0',
-  'In Attesa': '#FFA500',
-  'In Lavorazione': '#3182CE',
-  Completato: '#48BB78',
-  Annullato: '#F56565'
+  'In Attesa': '#FCD34D', // yellow-400 per corrispondere a bg-yellow-100
+  'In Corso': '#60A5FA', // blue-400 per corrispondere a bg-blue-100
+  'Completato': '#34D399', // green-400 per corrispondere a bg-green-100
+  'Annullato': '#F87171' // red-400 per corrispondere a bg-red-100
 };
 const DEFAULT_COLOR = '#CBD5E0';
 
 const ProjectsStatusWidget = () => {
-  const { data: projects, isLoading } = useLocalStorage('projects');
+  const { projects, projectsLoading } = useData();
 
   const projectStatusData = useMemo(() => {
     if (!projects) return [];
@@ -27,7 +26,7 @@ const ProjectsStatusWidget = () => {
     }));
   }, [projects]);
 
-  if (isLoading) return <Card title="Stato Progetti"><p className="text-gray-500 dark:text-gray-400">Caricamento …</p></Card>;
+  if (projectsLoading) return <Card title="Stato Progetti"><p className="text-gray-500 dark:text-gray-400">Caricamento …</p></Card>;
 
   return (
     <Card title="Stato Progetti" icon={<Icon name={BarChart2} />} className="min-h-[380px] flex flex-col">

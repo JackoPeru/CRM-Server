@@ -33,12 +33,20 @@ interface CrmCacheDB extends DBSchema {
     key: string;
     value: CacheEntry;
   };
+  notes: {
+    key: string;
+    value: CacheEntry;
+  };
+  workers: {
+    key: string;
+    value: CacheEntry;
+  };
 }
 
 class CacheService {
   private db: IDBPDatabase<CrmCacheDB> | null = null;
   private readonly DB_NAME = 'crmCache';
-  private readonly DB_VERSION = 1;
+  private readonly DB_VERSION = 3;
   private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minuti
   private initPromise: Promise<void> | null = null;
 
@@ -72,6 +80,12 @@ class CacheService {
             }
             if (!db.objectStoreNames.contains('analytics')) {
               db.createObjectStore('analytics', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('notes')) {
+              db.createObjectStore('notes', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('workers')) {
+              db.createObjectStore('workers', { keyPath: 'id' });
             }
           },
         });
@@ -121,7 +135,7 @@ class CacheService {
     };
 
     try {
-      await this.db!.put(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics', entry);
+      await this.db!.put(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes' | 'workers', entry);
       console.log(`Dati salvati nel cache: ${store}/${key}`);
     } catch (error) {
       console.error(`Errore nel salvataggio cache ${store}/${key}:`, error);
@@ -139,7 +153,7 @@ class CacheService {
     await this.ensureDB();
 
     try {
-      const entry = await this.db!.get(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics', key);
+      const entry = await this.db!.get(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes' | 'workers', key);
       
       if (!entry) {
         return null;
@@ -166,7 +180,7 @@ class CacheService {
     await this.ensureDB();
 
     try {
-      const entries = await this.db!.getAll(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics');
+      const entries = await this.db!.getAll(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes' | 'workers');
       const validEntries: T[] = [];
 
       for (const entry of entries) {
@@ -192,7 +206,7 @@ class CacheService {
     await this.ensureDB();
 
     try {
-      await this.db!.delete(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics', key);
+      await this.db!.delete(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes' | 'workers', key);
       console.log(`Elemento eliminato dal cache: ${store}/${key}`);
     } catch (error) {
       console.error(`Errore nell'eliminazione cache ${store}/${key}:`, error);
@@ -206,7 +220,7 @@ class CacheService {
     await this.ensureDB();
 
     try {
-      await this.db!.clear(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics');
+      await this.db!.clear(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes');
       console.log(`Cache pulito: ${store}`);
     } catch (error) {
       console.error(`Errore nella pulizia cache ${store}:`, error);
@@ -224,7 +238,8 @@ class CacheService {
       'projects', 
       'orders',
       'materials',
-      'analytics'
+      'analytics',
+      'notes'
     ];
 
     try {
@@ -258,7 +273,8 @@ class CacheService {
       'projects',
       'orders', 
       'materials',
-      'analytics'
+      'analytics',
+      'notes'
     ];
 
     try {
@@ -291,14 +307,15 @@ class CacheService {
       orders: 0,
       materials: 0,
       analytics: 0,
+      notes: 0,
     };
 
     let totalSize = 0;
 
     try {
-      const stores: (keyof CrmCacheDB)[] = ['customers', 'projects', 'orders', 'materials', 'analytics'];
+      const stores: (keyof CrmCacheDB)[] = ['customers', 'projects', 'orders', 'materials', 'analytics', 'notes'];
       for (const store of stores) {
-        const count = await this.db!.count(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics');
+        const count = await this.db!.count(store as 'customers' | 'projects' | 'orders' | 'materials' | 'analytics' | 'notes');
         stats[store] = count;
         totalSize += count;
       }

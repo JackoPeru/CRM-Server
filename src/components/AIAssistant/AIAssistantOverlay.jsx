@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Settings, Trash2, Bot, User, Loader } from 'luc
 import { aiAssistantService } from '../../services/aiAssistant';
 import toast from 'react-hot-toast';
 import { useAIAssistant } from '../../contexts/AIAssistantContext';
+import { useAuth } from '../../contexts/AuthContext';
 import './AIAssistant.css';
 
 const AIAssistantOverlay = () => {
@@ -16,13 +17,16 @@ const AIAssistantOverlay = () => {
     clearMessages
   } = useAIAssistant();
   
+  const { currentUser } = useAuth();
+  const isWorker = currentUser?.role === 'worker';
+  
   const [isConfigured, setIsConfigured] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [config, setConfig] = useState({
-    apiKey: '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',
-    model: 'deepseek/deepseek-chat-v3-0324:free'
+    apiKey: import.meta.env.VITE_AI_API_KEY || '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',
+    model: import.meta.env.VITE_AI_MODEL || 'deepseek/deepseek-chat-v3-0324:free'
   });
   const [streamingMessage, setStreamingMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -40,21 +44,46 @@ const AIAssistantOverlay = () => {
 
   // Carica configurazione salvata
   useEffect(() => {
+    // Forza l'uso della nuova configurazione dalle variabili d'ambiente
+    // rimuovendo la configurazione salvata se contiene la vecchia chiave API
     const savedConfig = localStorage.getItem('ai-assistant-config');
+    let shouldClearConfig = false;
+    
     if (savedConfig) {
       try {
         const parsedConfig = JSON.parse(savedConfig);
+        // Se la configurazione salvata contiene la vecchia chiave API, rimuovila
+        if (parsedConfig.apiKey && parsedConfig.apiKey.includes('2a607c88bf545837403d2bbee25c180b6c91f41d87751667ede87c9ff923703e')) {
+          console.log('AI Assistant: Rilevata vecchia chiave API nel localStorage, pulizia in corso...');
+          localStorage.removeItem('ai-assistant-config');
+          shouldClearConfig = true;
+        }
+      } catch (error) {
+        console.error('Errore nel parsing della configurazione salvata:', error);
+        shouldClearConfig = true;
+      }
+    }
+    
+    const configToUse = shouldClearConfig ? null : savedConfig;
+    if (configToUse) {
+      try {
+        const parsedConfig = JSON.parse(configToUse);
+        console.log('AI Assistant: Configurazione caricata dal localStorage:', {
+          hasApiKey: !!parsedConfig.apiKey,
+          apiKeyPrefix: parsedConfig.apiKey?.substring(0, 20) + '...',
+          model: parsedConfig.model
+        });
         setConfig(parsedConfig);
         
         // Inizializza il servizio se la configurazione è completa
         if (parsedConfig.apiKey && parsedConfig.model) {
           aiAssistantService.initialize({
-            apiKey: parsedConfig.apiKey,
-            model: parsedConfig.model,
-            baseUrl: 'https://openrouter.ai/api/v1',
-            maxTokens: 4000,
-            temperature: 0.7
-          });
+          apiKey: parsedConfig.apiKey,
+          model: parsedConfig.model,
+          baseUrl: import.meta.env.VITE_AI_BASE_URL || 'https://openrouter.ai/api/v1',
+          maxTokens: 4000,
+          temperature: 0.7
+        });
           setIsConfigured(true);
           setMessages(aiAssistantService.getChatHistory().filter(msg => msg.role !== 'system'));
         }
@@ -64,9 +93,16 @@ const AIAssistantOverlay = () => {
     } else {
       // Se non c'è configurazione salvata, usa quella di default e salvala
       const defaultConfig = {
-        apiKey: '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',
-        model: 'deepseek/deepseek-chat-v3-0324:free'
+        apiKey: import.meta.env.VITE_AI_API_KEY || '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',
+        model: import.meta.env.VITE_AI_MODEL || 'deepseek/deepseek-chat-v3-0324:free'
       };
+      
+      console.log('AI Assistant: Configurazione di default utilizzata:', {
+        hasEnvApiKey: !!import.meta.env.VITE_AI_API_KEY,
+        envApiKeyPrefix: import.meta.env.VITE_AI_API_KEY?.substring(0, 20) + '...',
+        finalApiKeyPrefix: defaultConfig.apiKey?.substring(0, 20) + '...',
+        model: defaultConfig.model
+      });
       
       localStorage.setItem('ai-assistant-config', JSON.stringify(defaultConfig));
       
@@ -237,13 +273,15 @@ const AIAssistantOverlay = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowConfig(!showConfig)}
-                  className="ai-assistant-close"
-                  title="Configurazione"
-                >
-                  <Settings size={16} />
-                </button>
+                {!isWorker && (
+                  <button
+                    onClick={() => setShowConfig(!showConfig)}
+                    className="ai-assistant-close"
+                    title="Configurazione"
+                  >
+                    <Settings size={16} />
+                  </button>
+                )}
                 <button
                   onClick={clearChat}
                   className="ai-assistant-close"
@@ -263,7 +301,7 @@ const AIAssistantOverlay = () => {
             </div>
 
             {/* Configurazione */}
-          {showConfig && (
+          {!isWorker && showConfig && (
             <div className="ai-assistant-config">
               <div className="space-y-3">
                 <div>

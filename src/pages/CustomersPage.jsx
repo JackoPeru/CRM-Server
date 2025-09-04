@@ -368,19 +368,19 @@ const CustomersPage = () => {
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium mb-2 mobile-friendly-text">Nome Completo *</label>
-                  <input type="text" name="name" id="name" value={newCustomer.name} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="text" name="name" id="name" value={newCustomer.name} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="Mario Rossi" />
                 </div>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium mb-2 mobile-friendly-text">Email</label>
-                  <input type="email" name="email" id="email" value={newCustomer.email} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="email" name="email" id="email" value={newCustomer.email} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="mario.rossi@email.com" />
                 </div>
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium mb-2 mobile-friendly-text">Telefono</label>
-                  <input type="tel" name="phone" id="phone" value={newCustomer.phone} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="tel" name="phone" id="phone" value={newCustomer.phone} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="+39 333 123 4567" />
                 </div>
                 <div>
                   <label htmlFor="address" className="block text-sm font-medium mb-2 mobile-friendly-text">Indirizzo</label>
-                  <input type="text" name="address" id="address" value={newCustomer.address} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="text" name="address" id="address" value={newCustomer.address} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="Via Roma 123, 00100 Roma" />
                 </div>
                 <div>
                   <label htmlFor="type" className="block text-sm font-medium mb-2 mobile-friendly-text">Tipo Cliente</label>
@@ -391,7 +391,7 @@ const CustomersPage = () => {
                 </div>
                 <div>
                   <label htmlFor="vatNumber" className="block text-sm font-medium mb-2 mobile-friendly-text">Partita IVA (se Azienda)</label>
-                  <input type="text" name="vatNumber" id="vatNumber" value={newCustomer.vatNumber || ''} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="text" name="vatNumber" id="vatNumber" value={newCustomer.vatNumber || ''} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="12345678901" />
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row justify-end gap-3">

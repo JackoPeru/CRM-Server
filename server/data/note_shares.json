@@ -1,0 +1,120 @@
+[
+  {
+    "id": "17521606696597h7op81pe",
+    "noteId": "17521606545630gszepet3",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "",
+    "sharedAt": "2025-07-10T15:17:49.660Z"
+  },
+  {
+    "id": "1752160710016eg37oxast",
+    "noteId": "17521606545630gszepet3",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "",
+    "sharedAt": "2025-07-10T15:18:30.016Z"
+  },
+  {
+    "id": "17521620893790iz7lesvv",
+    "noteId": "1752162082193au1rpyj3x",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "mex",
+    "sharedAt": "2025-07-10T15:41:29.379Z"
+  },
+  {
+    "id": "1752162174422sd470ip6q",
+    "noteId": "1752162082193au1rpyj3x",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "mex",
+    "sharedAt": "2025-07-10T15:42:54.422Z"
+  },
+  {
+    "id": "1752215905307fovptnpzh",
+    "noteId": "17521606545630gszepet3",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_003"
+    ],
+    "workerNames": [
+      "Ettore"
+    ],
+    "message": "mex",
+    "sharedAt": "2025-07-11T06:38:25.307Z"
+  },
+  {
+    "id": "1752229187084w79p9ral7",
+    "noteId": "17522291191981j3rbsina",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "mex aggiuntivo",
+    "sharedAt": "2025-07-11T10:19:47.084Z"
+  },
+  {
+    "id": "1752229324597vntmuxxme",
+    "noteId": "1752229320569xqxmg4uvs",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_001",
+      "worker_002",
+      "worker_003",
+      "worker_004"
+    ],
+    "workerNames": [
+      "Mario",
+      "Alex",
+      "Ettore",
+      "Mario"
+    ],
+    "message": "",
+    "sharedAt": "2025-07-11T10:22:04.597Z"
+  },
+  {
+    "id": "1752230092515bmtwzblv0",
+    "noteId": "1752229320569xqxmg4uvs",
+    "sharedBy": "admin_002",
+    "sharedByName": "undefined undefined",
+    "workerIds": [
+      "worker_002"
+    ],
+    "workerNames": [
+      "Alex"
+    ],
+    "message": "mex agg",
+    "sharedAt": "2025-07-11T10:34:52.515Z"
+  }
+]

@@ -12,6 +12,8 @@ import ordersReducer from './slices/ordersSlice';
 import materialsReducer from './slices/materialsSlice';
 import analyticsReducer from './slices/analyticsSlice';
 import uiReducer from './slices/uiSlice';
+import notesReducer from './slices/notesSlice';
+
 
 /**
  * Configurazione del store Redux
@@ -24,6 +26,7 @@ export const store = configureStore({
     materials: materialsReducer,
     analytics: analyticsReducer,
     ui: uiReducer,
+    notes: notesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -120,6 +123,19 @@ export const selectGlobalSearch = (state: RootState) => state.ui.globalSearch;
 export const selectBreadcrumbs = (state: RootState) => state.ui.breadcrumb;
 export const selectToasts = (state: RootState) => state.ui.toasts;
 
+// Selettori di utilità per appunti
+export const selectAllNotes = (state: RootState) => state.notes.notes;
+export const selectNotesLoading = (state: RootState) => state.notes.loading;
+export const selectNotesError = (state: RootState) => state.notes.error;
+export const selectWorkers = (state: RootState) => state.notes.workers;
+export const selectWorkersLoading = (state: RootState) => state.notes.workersLoading;
+export const selectNotesLastFetch = (state: RootState) => state.notes.lastFetch;
+export const selectNotesCount = (state: RootState) => state.notes.notes.length;
+export const selectRecentNotes = (state: RootState) => state.notes.notes.slice(0, 3);
+export const selectSharedWithMe = (state: RootState) => state.notes.sharedWithMe;
+export const selectSharedWithMeLoading = (state: RootState) => state.notes.sharedWithMeLoading;
+
+
 // Selettori combinati per dashboard (memoizzati)
 export const selectDashboardData = createSelector(
   [(state: RootState) => state.auth.isAuthenticated,
@@ -158,5 +174,61 @@ export const selectVoiceBotData = createSelector(
 );
 
 
+
+// Export actions from slices
+export {
+  loginUser as login,
+  logoutUser as logout,
+  updateUserProfile as updateProfile,
+  clearAuthError,
+} from './slices/authSlice';
+
+export {
+  fetchClients,
+  createClient,
+  updateClient,
+  deleteClient,
+  clearClientsError,
+} from './slices/clientsSlice';
+
+export {
+  fetchOrders,
+  createOrder,
+  updateOrder,
+  deleteOrder,
+  clearOrdersError,
+} from './slices/ordersSlice';
+
+export {
+  fetchMaterials,
+  createMaterial,
+  updateMaterial,
+  deleteMaterial,
+  clearMaterialsError,
+} from './slices/materialsSlice';
+
+export {
+  fetchAllAnalytics as fetchAnalytics,
+  clearAnalyticsError,
+} from './slices/analyticsSlice';
+
+export {
+  setTheme,
+  toggleSidebar as setSidebarCollapsed,
+  addToast as setNotification,
+  removeToast as clearNotification,
+} from './slices/uiSlice';
+// Notes actions
+export {
+  fetchNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+  shareNote,
+  fetchSharedWithMe,
+  fetchWorkers,
+  clearNotesError,
+  clearNotes,
+} from './slices/notesSlice';
 
 export default store;

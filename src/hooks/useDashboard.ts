@@ -80,7 +80,7 @@ export const useDashboard = () => {
       totalClients: clients.length,
       totalOrders: orders.length,
       totalMaterials: materials.length,
-      pendingOrders: orders.filter(order => order.status === 'In Attesa' || order.status === 'In Lavorazione').length,
+      pendingOrders: orders.filter(order => order.status === 'In Attesa' || order.status === 'In Corso').length,
       completedOrders: orders.filter(order => order.status === 'Completato').length,
       lowStockMaterials: materials.filter(material => 
         material.stockQuantity <= (material.minStockLevel || 10)

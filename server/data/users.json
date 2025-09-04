@@ -39,7 +39,16 @@
       "orders.view",
       "orders.create",
       "orders.edit",
-      "orders.delete"
+      "orders.delete",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "notes.view.all",
+      "notes.edit.all",
+      "notes.delete.all",
+      "notes.share.all"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2025-07-03T09:54:11.739Z",
@@ -63,7 +72,14 @@
       "materials.edit",
       "orders.view",
       "orders.edit",
-      "settings.view"
+      "settings.view",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "users.view",
+      "workers.view"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2025-07-04T13:53:45.835Z",
@@ -87,7 +103,14 @@
       "materials.edit",
       "orders.view",
       "orders.edit",
-      "settings.view"
+      "settings.view",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "users.view",
+      "workers.view"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
@@ -111,7 +134,14 @@
       "materials.edit",
       "orders.view",
       "orders.edit",
-      "settings.view"
+      "settings.view",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "users.view",
+      "workers.view"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
@@ -157,10 +187,19 @@
       "orders.view",
       "orders.create",
       "orders.edit",
-      "orders.delete"
+      "orders.delete",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "notes.view.all",
+      "notes.edit.all",
+      "notes.delete.all",
+      "notes.share.all"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-07-08T09:24:42.032Z",
+    "updatedAt": "2025-07-09T07:39:11.288Z",
     "name": "matteo"
   },
   {
@@ -203,7 +242,15 @@
       "orders.view",
       "orders.create",
       "orders.edit",
-      "orders.delete"
+      "orders.delete",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share",
+      "notes.edit.all",
+      "notes.delete.all",
+      "notes.share.all"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",
@@ -227,7 +274,12 @@
       "materials.edit",
       "orders.view",
       "orders.edit",
-      "settings.view"
+      "settings.view",
+      "notes.view",
+      "notes.create",
+      "notes.edit",
+      "notes.delete",
+      "notes.share"
     ],
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z",

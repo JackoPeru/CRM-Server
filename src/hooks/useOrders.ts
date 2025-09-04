@@ -43,8 +43,8 @@ export const useOrders = () => {
       const { type, action, data } = customEvent.detail;
       console.log('useOrders: Ricevuto aggiornamento AI:', { type, action, data });
       
-      if (type === 'quotes' || type === 'projects' || type === 'orders') {
-        // Ricarica i dati degli ordini/preventivi
+      if (type === 'quotes' || type === 'projects' || type === 'orders' || type === 'invoices') {
+        // Ricarica i dati degli ordini/preventivi/fatture
         dispatch(fetchOrders());
         dispatch(fetchOrdersStats());
       }

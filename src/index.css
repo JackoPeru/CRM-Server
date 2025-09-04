@@ -32,6 +32,58 @@ main {
   z-index: 9999 !important;
 }
 
+/* Stili per toast responsivi */
+@media (max-width: 768px) {
+  /* Container dei toast su mobile */
+  [data-hot-toast] {
+    position: fixed !important;
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: auto !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+  
+  /* Singolo toast su mobile */
+  [data-hot-toast] > div {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+    font-size: 14px !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* Icone dei toast su mobile */
+  [data-hot-toast] svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Testo dei toast su mobile */
+  [data-hot-toast] [role="status"] {
+    word-break: break-word !important;
+    line-height: 1.4 !important;
+  }
+}
+
+/* Stili per dispositivi molto piccoli */
+@media (max-width: 480px) {
+  [data-hot-toast] {
+    top: 5px !important;
+    left: 5px !important;
+    right: 5px !important;
+  }
+  
+  [data-hot-toast] > div {
+    font-size: 13px !important;
+    padding: 10px 14px !important;
+  }
+}
+
 /* Responsive Design Migliorato */
 @media (max-width: 768px) {
   .sidebar-open .main-content {
@@ -41,6 +93,16 @@ main {
   /* Padding ridotto su mobile */
   main {
     @apply p-2;
+  }
+  
+  /* Prevenire overflow orizzontale */
+  body, html {
+    @apply overflow-x-hidden;
+  }
+  
+  /* Container principale responsive */
+  .main-content {
+    @apply max-w-full overflow-x-hidden;
   }
   
   /* Tabelle responsive - nascondi su mobile */

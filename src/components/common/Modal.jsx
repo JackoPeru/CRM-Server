@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import Icon from './Icon';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   if (!isOpen) return null;
@@ -29,7 +28,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            <Icon name={X} size={24} />
+            <X size={24} />
           </button>
         </div>
         {children}

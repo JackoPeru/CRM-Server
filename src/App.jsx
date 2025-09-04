@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { cacheService } from './services/cache';
 import { ErrorProvider } from './context/ErrorContext.jsx';
-import { ChakraProvider } from '@chakra-ui/react';
+import ChakraThemeProvider from './theme/ChakraThemeProvider.jsx';
 
 
 import {
@@ -18,7 +18,8 @@ import {
 
 import { store } from './store/index';
 import { NetworkStatusProvider } from './contexts/NetworkStatusProvider';
-import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
+import AuthProvider from './contexts/AuthContext.tsx';
+import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import LoginForm from './components/auth/LoginForm.tsx';
@@ -30,6 +31,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import MaterialsPage from './pages/MaterialsPage';
 import QuotesPage from './pages/QuotesPage';
 import InvoicesPage from './pages/InvoicesPage';
+
 import SettingsPage from './pages/SettingsPage';
 
 
@@ -80,6 +82,7 @@ const navItems = [
     component: InvoicesPage,
     permission: 'invoices.view'
   },
+
   { 
     id: 'settings', 
     label: 'Impostazioni', 
@@ -207,7 +210,37 @@ const AppContent = () => {
           </ProtectedRoute>
         </main>
       </div>
-      <Toaster position="bottom-right" />
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: theme === 'dark' ? '#374151' : '#ffffff',
+            color: theme === 'dark' ? '#f9fafb' : '#111827',
+            fontSize: '14px',
+            maxWidth: '90vw',
+            wordBreak: 'break-word'
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff'
+            }
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff'
+            }
+          }
+        }}
+        containerStyle={{
+          top: '20px',
+          left: '20px',
+          bottom: '20px',
+          right: '20px'
+        }}
+      />
       <AIAssistantOverlay />
     </div>
   );
@@ -216,7 +249,7 @@ const AppContent = () => {
 const App = () => {
   return (
     <Provider store={store}>
-      <ChakraProvider>
+      <ChakraThemeProvider>
         <NetworkStatusProvider>
           <ErrorProvider>
             <AuthProvider>
@@ -226,7 +259,7 @@ const App = () => {
             </AuthProvider>
           </ErrorProvider>
         </NetworkStatusProvider>
-      </ChakraProvider>
+      </ChakraThemeProvider>
     </Provider>
   );
 };

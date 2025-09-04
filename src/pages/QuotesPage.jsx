@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Edit, Trash, Search, Plus, Filter, X, Download, Send, Copy } from 'lucide-react';
+import { Eye, Edit, Trash, Search, Plus, Filter, X, Download, Mail } from 'lucide-react';
 import useUI from '../hooks/useUI';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../hooks/useAuth';
+import { formatDate } from '../utils/helpers';
 
 const QuotesPage = () => {
   const { 
@@ -127,8 +128,8 @@ const QuotesPage = () => {
       type: 'quote',
       quoteNumber: generatedQuoteNumber, // Added auto-generated number
       total: calculateTotal(newQuote.items),
-      customerId: parseInt(newQuote.customerId),
-      projectId: newQuote.projectId ? parseInt(newQuote.projectId) : null,
+      customerId: newQuote.customerId,
+      projectId: newQuote.projectId || null,
     };
     addQuote(quoteToAdd);
     hideModal('addQuote');
@@ -270,7 +271,7 @@ const QuotesPage = () => {
               {filteredQuotes.length > 0 ? filteredQuotes.map((quote) => (
                 <tr key={quote.id} className="hover:bg-light-hover dark:hover:bg-dark-hover">
                   {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-light-text-strong dark:text-dark-text-strong">{quote.quoteNumber}</td> */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{new Date(quote.date).toLocaleDateString('it-IT')}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{formatDate(quote.date)}</td>
                   {!isWorker && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">
                       {customers.find(c => c.id === quote.customerId)?.name || 'N/D'}
@@ -316,7 +317,7 @@ const QuotesPage = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium text-light-text-strong dark:text-dark-text-strong mobile-friendly-text">
-                      {new Date(quote.date).toLocaleDateString('it-IT')}
+                      {formatDate(quote.date)}
                     </span>
                     {getStatusPill(quote.status)}
                   </div>
@@ -398,7 +399,12 @@ const QuotesPage = () => {
                   <label htmlFor="projectId" className="block text-sm font-medium mb-2 mobile-friendly-text">Progetto (Opzionale)</label>
                   <select name="projectId" id="projectId" value={newQuote.projectId} onChange={handleInputChange} className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target">
                     <option value="">Nessun Progetto Specifico</option>
-                    {projects.filter(p => !newQuote.customerId || p.clientId === newQuote.customerId).map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                    {(() => {
+                       // Se nessun cliente è selezionato, mostra tutti i progetti
+                       // Se un cliente è selezionato, mostra solo i progetti di quel cliente
+                       const filteredProjects = !newQuote.customerId ? projects : projects.filter(p => p.clientId === newQuote.customerId);
+                       return filteredProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>);
+                     })()}
                   </select>
                 </div>
               </div>
@@ -411,7 +417,7 @@ const QuotesPage = () => {
                     <div className="grid grid-cols-1 gap-3">
                       <div>
                         <label className="block text-xs font-medium mb-2 mobile-friendly-text">Descrizione *</label>
-                        <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
+                        <input type="text" placeholder="Marmo Carrara per rivestimento" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-2 mobile-friendly-text">Materiale</label>
@@ -423,11 +429,11 @@ const QuotesPage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="block text-xs font-medium mb-2 mobile-friendly-text">Quantità *</label>
-                          <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
+                          <input type="number" placeholder="25" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium mb-2 mobile-friendly-text">Prezzo Un. *</label>
-                          <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" disabled={!!item.materialId} />
+                          <input type="number" placeholder="45.50" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" disabled={!!item.materialId} />
                         </div>
                       </div>
                       <div className="flex justify-between items-center">
@@ -448,7 +454,7 @@ const QuotesPage = () => {
                   <div className="hidden lg:contents">
                     <div className="col-span-4">
                       {index === 0 && <label className="block text-xs font-medium mb-2 mobile-friendly-text">Descrizione *</label>}
-                      <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
+                      <input type="text" placeholder="Marmo Carrara per rivestimento" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
                     </div>
                     <div className="col-span-2">
                        {index === 0 && <label className="block text-xs font-medium mb-2 mobile-friendly-text">Materiale</label>}
@@ -459,11 +465,11 @@ const QuotesPage = () => {
                     </div>
                     <div className="col-span-2">
                       {index === 0 && <label className="block text-xs font-medium mb-2 mobile-friendly-text">Quantità *</label>}
-                      <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
+                      <input type="number" placeholder="25" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" />
                     </div>
                     <div className="col-span-2">
                       {index === 0 && <label className="block text-xs font-medium mb-2 mobile-friendly-text">Prezzo Un. *</label>}
-                      <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" disabled={!!item.materialId} />
+                      <input type="number" placeholder="45.50" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm mobile-friendly-text touch-target" disabled={!!item.materialId} />
                     </div>
                     <div className="col-span-1">
                       {index === 0 && <label className="block text-xs font-medium mb-2 mobile-friendly-text">Tot.</label>}
@@ -498,13 +504,13 @@ const QuotesPage = () => {
                 </div>
                 <div>
                   <label htmlFor="validityDays" className="block text-sm font-medium mb-2 mobile-friendly-text">Validità (giorni) *</label>
-                  <input type="number" name="validityDays" id="validityDays" value={newQuote.validityDays} onChange={handleInputChange} required min="1" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="number" name="validityDays" id="validityDays" placeholder="30" value={newQuote.validityDays} onChange={handleInputChange} required min="1" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
                 </div>
               </div>
 
               <div>
                 <label htmlFor="notes" className="block text-sm font-medium mb-2 mobile-friendly-text">Note Aggiuntive</label>
-                <textarea name="notes" id="notes" value={newQuote.notes} onChange={handleInputChange} rows="3" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target"></textarea>
+                <textarea name="notes" id="notes" placeholder="Preventivo valido per 30 giorni. Prezzi IVA esclusa." value={newQuote.notes} onChange={handleInputChange} rows="3" className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target"></textarea>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
@@ -538,16 +544,21 @@ const QuotesPage = () => {
                 </div>
                 <div>
                   <label htmlFor="edit-customerId" className="block text-sm font-medium mb-2 mobile-friendly-text">Cliente *</label>
-                  <select name="customerId" id="edit-customerId" value={currentQuote.customerId} onChange={(e) => setCurrentQuote({...currentQuote, customerId: parseInt(e.target.value)})} required className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
+                  <select name="customerId" id="edit-customerId" value={currentQuote.customerId || ''} onChange={(e) => setCurrentQuote({...currentQuote, customerId: e.target.value})} required className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
                     <option value="">Seleziona Cliente</option>
                     {customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label htmlFor="edit-projectId" className="block text-sm font-medium mb-2 mobile-friendly-text">Progetto (Opzionale)</label>
-                  <select name="projectId" id="edit-projectId" value={currentQuote.projectId || ''} onChange={(e) => setCurrentQuote({...currentQuote, projectId: e.target.value ? parseInt(e.target.value) : null})} className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
+                  <select name="projectId" id="edit-projectId" value={currentQuote.projectId || ''} onChange={(e) => setCurrentQuote({...currentQuote, projectId: e.target.value || null})} className="w-full p-3 lg:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
                     <option value="">Nessun Progetto Specifico</option>
-                     {projects.filter(p => !currentQuote.customerId || p.clientId === currentQuote.customerId).map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                     {(() => {
+                        // Se nessun cliente è selezionato, mostra tutti i progetti
+                        // Se un cliente è selezionato, mostra solo i progetti di quel cliente
+                        const filteredProjects = !currentQuote.customerId ? projects : projects.filter(p => p.clientId === currentQuote.customerId);
+                        return filteredProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>);
+                      })()}
                   </select>
                 </div>
               </div>
@@ -672,7 +683,7 @@ const QuotesPage = () => {
             <div className="flex justify-between items-start mb-4 lg:mb-6">
               <div>
                 <h2 className="text-lg lg:text-2xl font-bold text-light-primary dark:text-dark-primary mobile-friendly-text">Preventivo #{quoteToView.quoteNumber}</h2>
-                <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 mobile-friendly-text">Data: {new Date(quoteToView.date).toLocaleDateString('it-IT')} - Validità: {quoteToView.validityDays} giorni</p>
+                <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 mobile-friendly-text">Data: {formatDate(quoteToView.date)} - Validità: {quoteToView.validityDays} giorni</p>
               </div>
               <button onClick={() => hideModal('viewQuote')} className="p-2 lg:p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full touch-target">
                 <X className="w-6 h-6" />

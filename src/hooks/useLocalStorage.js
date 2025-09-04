@@ -15,11 +15,14 @@ const defaultData = {
   projects: [
     {
       id: '1',
-      title: 'Progetto Demo',
-      customerId: '1',
-      status: 'In corso',
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      name: 'Progetto Demo',
+      clientId: '1',
+      status: 'In Corso',
+      startDate: new Date().toISOString().split('T')[0],
+      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      budget: '€ 5.000,00',
+      type: 'project',
+      client: 'Cliente Demo',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -130,6 +133,20 @@ const useLocalStorage = (collectionName) => {
     return data.find(item => item.id === id);
   };
 
+  const clearData = () => {
+    try {
+      localStorage.removeItem(collectionName);
+      if (defaultData[collectionName]) {
+        saveData(defaultData[collectionName]);
+        setData(defaultData[collectionName]);
+      } else {
+        setData([]);
+      }
+    } catch (err) {
+      setError(err);
+    }
+  };
+
   return {
     data,
     isLoading,
@@ -137,7 +154,8 @@ const useLocalStorage = (collectionName) => {
     addItem,
     updateItem,
     deleteItem,
-    getItem
+    getItem,
+    clearData
   };
 };
 
