@@ -30,16 +30,6 @@
     "updatedAt": "2024-02-01T09:45:00.000Z"
   },
   {
-    "name": "Prova connessione ",
-    "email": "",
-    "phone": "",
-    "address": "",
-    "type": "Privato",
-    "id": "17518953908087hsz5n425",
-    "createdAt": "2025-07-07T13:36:30.808Z",
-    "updatedAt": "2025-07-07T13:36:30.808Z"
-  },
-  {
     "name": "Mario Rossi",
     "email": "mario.rossi@example.com",
     "phone": "1234567890",
@@ -52,9 +42,11 @@
     "name": "Luigino",
     "email": "",
     "phone": "",
+    "address": "",
+    "company": "",
     "type": "individual",
-    "id": "17519816874433v6n8qjnf",
-    "createdAt": "2025-07-08T13:34:47.443Z",
-    "updatedAt": "2025-07-08T13:34:47.443Z"
+    "createdAt": "2025-07-08T14:29:11.213Z",
+    "id": "1751984951213zsbaeolt2",
+    "updatedAt": "2025-07-08T14:29:11.213Z"
   }
 ]

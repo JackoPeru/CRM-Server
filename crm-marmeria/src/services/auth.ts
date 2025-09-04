@@ -22,7 +22,7 @@ export interface AuthResponse {
 }
 
 class AuthService {
-  private readonly TOKEN_KEY = 'crm_auth_token';
+  private readonly TOKEN_KEY = 'crm_token';
   private readonly USER_KEY = 'crm_user_profile';
   private validationPromise: Promise<boolean> | null = null; // Cache per evitare chiamate multiple
 
@@ -42,6 +42,9 @@ class AuthService {
       
       const response = await apiClient.post('/auth/login', loginData);
       const data: AuthResponse = response.data;
+
+      // Pulisce i dati di autenticazione precedenti prima di salvarne di nuovi
+      this.clearAuth();
       
       // Salva token e dati utente
       this.setToken(data.token);
@@ -102,7 +105,17 @@ class AuthService {
     }
     
     try {
-      return JSON.parse(userData);
+      const user = JSON.parse(userData);
+      // Assicurati che il formato sia quello atteso da User
+      return {
+        id: user.id,
+        username: user.name, // Adatta il campo `name` a `username`
+        email: user.email,
+        firstName: user.name, // Puoi decidere come mappare
+        lastName: '', // Puoi decidere come mappare
+        role: user.role,
+        permissions: user.permissions,
+      };
     } catch (error) {
       console.error('Errore parsing userData:', error);
       return null;
@@ -111,8 +124,6 @@ class AuthService {
 
   // Salva dati utente
   setUser(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    
     // Sincronizza con il formato del profilo utente per authSlice
     const userProfile = {
       id: user.id,
@@ -124,7 +135,7 @@ class AuthService {
     };
     
     // Salva il profilo utente per authSlice
-    localStorage.setItem('crm_user_profile', JSON.stringify(userProfile));
+    localStorage.setItem(this.USER_KEY, JSON.stringify(userProfile));
   }
 
   // Pulisci tutti i dati di autenticazione
@@ -171,16 +182,13 @@ class AuthService {
   // Aggiorna il token di accesso
   async refreshToken(): Promise<string | null> {
     try {
-      // In una implementazione reale, qui si farebbe una chiamata API
-      // per ottenere un nuovo token usando il refresh token
-      
-      // Per ora, restituiamo semplicemente il token corrente
-      const token = this.getToken();
-      if (!token) {
-        throw new Error('Nessun token disponibile per il refresh');
+      const response = await apiClient.post('/auth/refresh-token');
+      const newAccessToken = response.data.token;
+      if (newAccessToken) {
+        this.setToken(newAccessToken);
+        return newAccessToken;
       }
-      
-      return token;
+      return null;
     } catch (error) {
       console.error('Errore durante il refresh del token:', error);
       this.clearAuth(); // Pulisci l'autenticazione in caso di errore
@@ -250,24 +258,58 @@ class AuthService {
         return false;
       }
 
-      const response = await apiClient.get('/auth/me');
-      
-      // Aggiorna i dati utente solo se la risposta è valida
-      if (response.data?.user) {
-        this.setUser(response.data.user);
+      // Controlla la connettività di rete
+      if (!navigator.onLine) {
+        console.warn('Nessuna connessione di rete, validazione token saltata');
+        // Se offline, considera il token valido se esiste
         return true;
       }
+
+      // Timeout più breve per mobile (5 secondi invece di default)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      return false;
+      try {
+        const response = await apiClient.get('/auth/me', {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // Aggiorna i dati utente solo se la risposta è valida
+        if (response.data?.user) {
+          this.setUser(response.data.user);
+          return true;
+        }
+        
+        return false;
+      } catch (requestError: any) {
+        clearTimeout(timeoutId);
+        
+        // Se è un timeout o errore di rete, considera il token valido
+        if (requestError.name === 'AbortError' || 
+            requestError.code === 'NETWORK_ERROR' || 
+            requestError.message?.includes('Network Error') ||
+            requestError.code === 'ECONNABORTED') {
+          console.warn('Timeout o errore di rete durante validazione token, mantengo autenticazione');
+          return true;
+        }
+        
+        throw requestError;
+      }
     } catch (error: any) {
       console.error('Errore durante validazione token:', error);
       
-      // Se è un errore di autenticazione (401), cancella i dati
-      if (error?.response?.status === 401) {
+      // Se è un errore di autenticazione (401 o 403), cancella i dati
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.warn('Token non valido, pulizia autenticazione');
         this.clearAuth();
+        return false;
       }
       
-      return false;
+      // Per altri errori (rete, timeout, ecc.), mantieni l'autenticazione
+      console.warn('Errore di rete durante validazione, mantengo autenticazione locale');
+      return true;
     }
   }
 }

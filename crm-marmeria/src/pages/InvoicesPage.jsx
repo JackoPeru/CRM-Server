@@ -3,6 +3,7 @@ import { Eye, Edit, Trash, Search, Plus, Filter, X, Download, Send, Printer, Fil
 import useUI from '../hooks/useUI';
 import { useData } from '../hooks/useData';
 import { useAuth } from '../hooks/useAuth';
+import { formatDate } from '../utils/helpers';
 
 const InvoicesPage = () => {
   const { 
@@ -26,7 +27,7 @@ const InvoicesPage = () => {
   const [newInvoice, setNewInvoice] = useState({
     // invoiceNumber: '', // Removed: Will be auto-generated
     date: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     customerId: '',
     projectId: '', // Opzionale
     quoteId: '', // Opzionale, per collegare a un preventivo
@@ -207,8 +208,8 @@ const InvoicesPage = () => {
         </div>
         
         <div class="invoice-details">
-          <p><strong>Data:</strong> ${new Date(invoice.date).toLocaleDateString('it-IT')}</p>
-          <p><strong>Scadenza:</strong> ${new Date(invoice.dueDate).toLocaleDateString('it-IT')}</p>
+          <p><strong>Data:</strong> ${formatDate(invoice.date)}</p>
+          <p><strong>Scadenza:</strong> ${formatDate(invoice.dueDate)}</p>
         </div>
         
         <div class="client-info">
@@ -271,7 +272,7 @@ const InvoicesPage = () => {
     const clientEmail = client ? client.email : '';
     
     const subject = `Fattura ${invoice.invoiceNumber} - ${clientName}`;
-    const body = `Gentile ${clientName},\n\nIn allegato trova la fattura ${invoice.invoiceNumber} del ${new Date(invoice.date).toLocaleDateString('it-IT')}.\n\nImporto totale: €${(invoice.total || 0).toFixed(2)}\n\nCordiali saluti,\nIl Team`;
+    const body = `Gentile ${clientName},\n\nIn allegato trova la fattura ${invoice.invoiceNumber} del ${formatDate(invoice.date)}.\n\nImporto totale: €${(invoice.total || 0).toFixed(2)}\n\nCordiali saluti,\nIl Team`;
     
     const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
@@ -336,8 +337,8 @@ const InvoicesPage = () => {
             <tbody className="bg-white dark:bg-dark-card divide-y divide-light-border dark:divide-dark-border">
               {filteredInvoices.length > 0 ? filteredInvoices.map((invoice) => (
                 <tr key={invoice.id} className="hover:bg-light-hover dark:hover:bg-dark-hover">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{new Date(invoice.date).toLocaleDateString('it-IT')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('it-IT') : 'N/D'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{formatDate(invoice.date)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{invoice.dueDate ? formatDate(invoice.dueDate) : 'N/D'}</td>
                   {!isWorker && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">
                       {customers.find(c => c.id === invoice.customerId)?.name || 'N/D'}
@@ -380,7 +381,7 @@ const InvoicesPage = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Data:</span>
-                    <span className="text-sm text-light-text dark:text-dark-text mobile-friendly-text">{new Date(invoice.date).toLocaleDateString('it-IT')}</span>
+                    <span className="text-sm text-light-text dark:text-dark-text mobile-friendly-text">{formatDate(invoice.date)}</span>
                   </div>
                   {!isWorker && (
                     <div className="flex items-center gap-2 mb-2">
@@ -390,7 +391,7 @@ const InvoicesPage = () => {
                   )}
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Scadenza:</span>
-                    <span className="text-sm text-light-text dark:text-dark-text mobile-friendly-text">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('it-IT') : 'N/D'}</span>
+                    <span className="text-sm text-light-text dark:text-dark-text mobile-friendly-text">{invoice.dueDate ? formatDate(invoice.dueDate) : 'N/D'}</span>
                   </div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Totale:</span>
@@ -442,7 +443,7 @@ const InvoicesPage = () => {
                 </div>
                 <div>
                   <label htmlFor="date" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Data Fattura *</label>
-                  <input type="date" name="date" id="date" value={newInvoice.date} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
+                  <input type="date" name="date" id="date" value={newInvoice.date} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" placeholder="2024-01-15" />
                 </div>
                 <div>
                   <label htmlFor="dueDate" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Data Scadenza *</label>
@@ -459,7 +460,12 @@ const InvoicesPage = () => {
                   <label htmlFor="projectId" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Progetto (Opzionale)</label>
                   <select name="projectId" id="projectId" value={newInvoice.projectId} onChange={handleInputChange} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
                     <option value="">Nessun Progetto</option>
-                    {projects.filter(p => !newInvoice.customerId || p.clientId === newInvoice.customerId).map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                    {(() => {
+                      // Se nessun cliente è selezionato, mostra tutti i progetti
+                      // Se un cliente è selezionato, mostra solo i progetti di quel cliente
+                      const filteredProjects = !newInvoice.customerId ? projects : projects.filter(p => p.clientId === newInvoice.customerId);
+                      return filteredProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>);
+                    })()}
                   </select>
                 </div>
                 <div>
@@ -483,19 +489,19 @@ const InvoicesPage = () => {
                     <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
                       <div className="col-span-4">
                         {index === 0 && <label className="block text-xs font-medium mb-1 dark:text-dark-text-medium">Descrizione *</label>}
-                        <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input dark:text-dark-text dark:placeholder-gray-400 text-sm" />
+                        <input type="text" placeholder="Fornitura e posa marmo Carrara" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input dark:text-dark-text dark:placeholder-gray-400 text-sm" />
                       </div>
                       <div className="col-span-2">
                         {index === 0 && <label className="block text-xs font-medium mb-1 dark:text-dark-text-medium">Quantità *</label>}
-                        <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
+                        <input type="number" placeholder="25" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                       </div>
                       <div className="col-span-2">
                         {index === 0 && <label className="block text-xs font-medium mb-1 dark:text-dark-text-medium">Prezzo Un. *</label>}
-                        <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
+                        <input type="number" placeholder="45.50" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                       </div>
                       <div className="col-span-2">
                         {index === 0 && <label className="block text-xs font-medium mb-1 dark:text-dark-text-medium">IVA % *</label>}
-                        <input type="number" placeholder="IVA" value={item.taxRate} onChange={(e) => handleItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
+                        <input type="number" placeholder="22" value={item.taxRate} onChange={(e) => handleItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input text-sm" />
                       </div>
                       <div className="col-span-1">
                         {index === 0 && <label className="block text-xs font-medium mb-1 dark:text-dark-text-medium">Tot.</label>}
@@ -527,22 +533,22 @@ const InvoicesPage = () => {
                       <div className="space-y-3">
                         <div>
                           <label className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Descrizione *</label>
-                          <input type="text" placeholder="Descrizione Voce" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input dark:text-dark-text dark:placeholder-gray-400 mobile-friendly-text touch-target" />
+                          <input type="text" placeholder="Fornitura e posa marmo Carrara" value={item.description} onChange={(e) => handleItemChange(index, 'description', e.target.value)} required className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input dark:text-dark-text dark:placeholder-gray-400 mobile-friendly-text touch-target" />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Quantità *</label>
-                            <input type="number" placeholder="Qtà" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
+                            <input type="number" placeholder="25" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))} required min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Prezzo Un. *</label>
-                            <input type="number" placeholder="Prezzo" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
+                            <input type="number" placeholder="45.50" value={item.unitPrice} onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))} required step="0.01" min="0" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">IVA % *</label>
-                            <input type="number" placeholder="IVA" value={item.taxRate} onChange={(e) => handleItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
+                            <input type="number" placeholder="22" value={item.taxRate} onChange={(e) => handleItemChange(index, 'taxRate', parseFloat(e.target.value))} required min="0" max="100" className="w-full p-3 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target" />
                           </div>
                           <div>
                             <label className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Totale</label>
@@ -575,11 +581,11 @@ const InvoicesPage = () => {
 
               <div className="mb-4">
                 <label htmlFor="paymentDetails" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Dettagli Pagamento</label>
-                <textarea name="paymentDetails" id="paymentDetails" value={newInvoice.paymentDetails} onChange={handleInputChange} rows="2" placeholder="Es. IBAN: IT..., Bonifico Bancario" className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target"></textarea>
+                <textarea name="paymentDetails" id="paymentDetails" value={newInvoice.paymentDetails} onChange={handleInputChange} rows="2" placeholder="Bonifico bancario - IBAN: IT60 X054 2811 1010 0000 0123 456" className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target"></textarea>
               </div>
               <div className="mb-4">
                 <label htmlFor="notes" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Note Aggiuntive</label>
-                <textarea name="notes" id="notes" value={newInvoice.notes} onChange={handleInputChange} rows="2" className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target"></textarea>
+                <textarea name="notes" id="notes" value={newInvoice.notes} onChange={handleInputChange} rows="2" placeholder="Pagamento entro 30 giorni dalla data di fattura" className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target"></textarea>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
@@ -626,7 +632,12 @@ const InvoicesPage = () => {
                   <label htmlFor="edit-projectId" className="block text-sm font-medium mb-2 dark:text-dark-text-medium mobile-friendly-text">Progetto (Opzionale)</label>
                   <select name="projectId" id="edit-projectId" value={currentInvoice.projectId || ''} onChange={(e) => setCurrentInvoice({...currentInvoice, projectId: e.target.value ? parseInt(e.target.value) : null})} className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input mobile-friendly-text touch-target">
                     <option value="">Nessun Progetto</option>
-                     {projects.filter(p => !currentInvoice.customerId || p.clientId === currentInvoice.customerId).map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
+                     {(() => {
+                       // Se nessun cliente è selezionato, mostra tutti i progetti
+                       // Se un cliente è selezionato, mostra solo i progetti di quel cliente
+                       const filteredProjects = !currentInvoice.customerId ? projects : projects.filter(p => p.clientId === currentInvoice.customerId);
+                       return filteredProjects.map(project => <option key={project.id} value={project.id}>{project.name}</option>);
+                     })()}
                   </select>
                 </div>
                  <div>

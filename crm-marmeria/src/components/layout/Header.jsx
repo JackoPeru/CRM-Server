@@ -4,6 +4,7 @@ import Icon from '../common/Icon';
 import useUI from '../../hooks/useUI';
 import { useAuth } from '../../hooks/useAuth';
 import AIAssistantButton from '../AIAssistant/AIAssistantButton';
+import NotificationBell from '../notifications/NotificationBell';
 
 const Header = () => {
   const { theme, toggleTheme, userPreferences, toggleSidebar } = useUI();
@@ -52,6 +53,9 @@ const Header = () => {
             size="md" 
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          
+          {/* Campana Notifiche */}
+          <NotificationBell />
           
           <button
             onClick={toggleTheme}

@@ -7,7 +7,7 @@ import { loginUser, logoutUser, updateUserProfile, checkAuthStatus } from '../st
 
 // AuthContext module loaded
 
-interface AuthContextType {
+export interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -18,13 +18,13 @@ interface AuthContextType {
   hasAnyRole: (roles: string[]) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log('[AuthContext] Inizializzazione AuthProvider');
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -106,10 +106,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
+export default AuthProvider;
+
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth deve essere utilizzato all\'interno di un AuthProvider');
   }
   return context;
 };

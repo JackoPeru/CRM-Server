@@ -48,15 +48,10 @@ const authenticateToken = (req, res, next) => {
       return res.status(403).json({ error: 'Token non valido' });
     }
     
-    // Verifica che l'utente esista ancora e sia attivo
-    const users = readUsers();
-    const currentUser = users.find(u => u.id === user.id && u.isActive);
-    
-    if (!currentUser) {
-      return res.status(403).json({ error: 'Utente non trovato o disattivato' });
-    }
-    
-    req.user = currentUser;
+    // I dati dell'utente, inclusi i permessi, sono già nel payload del token.
+    // Non è necessario ricaricare da users.json, il che migliora le prestazioni
+    // e garantisce che i permessi siano quelli validi al momento del login.
+    req.user = user;
     next();
   });
 };

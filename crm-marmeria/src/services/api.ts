@@ -55,19 +55,18 @@ class ApiClient {
         // Se è un errore 401 (Unauthorized) e non è già un retry
         if (error.response?.status === 401 && !originalRequest?._retry) {
           originalRequest._retry = true;
-          
-          // Se siamo sulla pagina di login, non tentare il refresh del token
-          if (window.location.pathname.includes('login')) {
-            console.error('Errore di autenticazione durante il login:', error.response?.data);
+
+          try {
+            const newAccessToken = await authService.refreshToken();
+            if (newAccessToken) {
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return this.axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            console.error('Impossibile aggiornare il token:', refreshError);
             this.handleAuthError();
-            return Promise.reject(error);
+            return Promise.reject(refreshError);
           }
-          
-          console.error('Errore di autenticazione (401), logout in corso.');
-          this.handleAuthError();
-          // Non reindirizzare qui, lascia che sia l'UI a gestire il cambio di stato
-          // basato su isAuthenticated.
-          return Promise.reject(error);
         }
         
         // Gestione errori 403 (Forbidden) - permessi insufficienti
@@ -123,7 +122,7 @@ class ApiClient {
   private getAccessToken(): string | null {
     try {
       // Usa la stessa chiave del servizio di autenticazione
-      return localStorage.getItem('crm_auth_token');
+      return localStorage.getItem('crm_token');
     } catch (error) {
       console.error('Errore nel recupero del token:', error);
     }
@@ -137,9 +136,7 @@ class ApiClient {
    */
   private handleAuthError(): void {
     // Pulisci il token dal localStorage
-    localStorage.removeItem('crm_auth_token');
-    localStorage.removeItem('crm_user_data');
-    // Rimuovi anche il profilo utente utilizzato da authSlice
+    localStorage.removeItem('crm_token');
     localStorage.removeItem('crm_user_profile');
     // Non ricaricare automaticamente la pagina per evitare loop infiniti
     // Lascia che sia l'AuthContext a gestire il cambio di stato

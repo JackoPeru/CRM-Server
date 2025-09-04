@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dropdown Progetti</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
+        .debug-info { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .project-item { padding: 5px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debug Dropdown Progetti</h1>
+        
+        <div class="debug-info">
+            <h3>Clienti disponibili:</h3>
+            <div id="clients-list"></div>
+        </div>
+        
+        <div class="debug-info">
+            <h3>Progetti disponibili:</h3>
+            <div id="projects-list"></div>
+        </div>
+        
+        <label for="client-select">Seleziona Cliente:</label>
+        <select id="client-select">
+            <option value="">Seleziona Cliente</option>
+        </select>
+        
+        <label for="project-select">Progetti filtrati:</label>
+        <select id="project-select">
+            <option value="">Nessun Progetto Specifico</option>
+        </select>
+        
+        <div class="debug-info">
+            <h3>Progetti filtrati (debug):</h3>
+            <div id="filtered-projects"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dati di test basati sui file JSON
+        const clients = [
+            { id: "client_001", name: "Mario Rossi" },
+            { id: "client_002", name: "Giulia Bianchi" },
+            { id: "client_003", name: "Luca Verdi" },
+            { id: "17519814098969l949clgm", name: "Mario Rossi (2)" },
+            { id: "1751984951213zsbaeolt2", name: "Luigino" }
+        ];
+        
+        const projects = [
+            { id: "1751970137873kgz1t9cpk", name: "e", clientId: "client_003" },
+            { id: "17519705652154dcrrnect", name: "f", clientId: "client_001" },
+            { id: "1751616900089bfx7e94l6", name: "a", clientId: "client_002" },
+            { id: "1751616918000yj4r2o5rf", name: "b", clientId: "client_002" },
+            { id: "17516169342333acuqv5es", name: "c", clientId: "client_003" },
+            { id: "1751616950400jq7m80vd9", name: "d", clientId: "client_003" }
+        ];
+        
+        function populateClients() {
+            const clientSelect = document.getElementById('client-select');
+            const clientsList = document.getElementById('clients-list');
+            
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name;
+                clientSelect.appendChild(option);
+                
+                const div = document.createElement('div');
+                div.className = 'project-item';
+                div.textContent = `${client.name} (ID: ${client.id})`;
+                clientsList.appendChild(div);
+            });
+        }
+        
+        function populateProjects() {
+            const projectsList = document.getElementById('projects-list');
+            
+            projects.forEach(project => {
+                const div = document.createElement('div');
+                div.className = 'project-item';
+                const client = clients.find(c => c.id === project.clientId);
+                div.textContent = `${project.name} - Cliente: ${client ? client.name : 'Non trovato'} (${project.clientId})`;
+                projectsList.appendChild(div);
+            });
+        }
+        
+        function filterProjects(selectedClientId) {
+            const projectSelect = document.getElementById('project-select');
+            const filteredDiv = document.getElementById('filtered-projects');
+            
+            // Pulisci il dropdown
+            projectSelect.innerHTML = '<option value="">Nessun Progetto Specifico</option>';
+            filteredDiv.innerHTML = '';
+            
+            // Filtra progetti
+            const filteredProjects = projects.filter(p => !selectedClientId || p.clientId === selectedClientId);
+            
+            console.log('Cliente selezionato:', selectedClientId);
+            console.log('Progetti filtrati:', filteredProjects);
+            
+            filteredProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.name;
+                projectSelect.appendChild(option);
+                
+                const div = document.createElement('div');
+                div.className = 'project-item';
+                const client = clients.find(c => c.id === project.clientId);
+                div.textContent = `${project.name} - Cliente: ${client ? client.name : 'Non trovato'}`;
+                filteredDiv.appendChild(div);
+            });
+            
+            const countDiv = document.createElement('div');
+            countDiv.style.fontWeight = 'bold';
+            countDiv.textContent = `Totale progetti filtrati: ${filteredProjects.length}`;
+            filteredDiv.insertBefore(countDiv, filteredDiv.firstChild);
+        }
+        
+        // Inizializza
+        populateClients();
+        populateProjects();
+        filterProjects(''); // Mostra tutti i progetti inizialmente
+        
+        // Event listener per il cambio cliente
+        document.getElementById('client-select').addEventListener('change', function(e) {
+            filterProjects(e.target.value);
+        });
+    </script>
+</body>
+</html>

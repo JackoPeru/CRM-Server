@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "date": "2025-07-08",
+    "customerId": "1751983917900y03lofvw8",
+    "items": [
+      {
+        "description": "Fattura per lavori approvati",
+        "quantity": 1,
+        "unitPrice": 1000,
+        "materialId": ""
+      }
+    ],
+    "notes": "",
+    "status": "draft",
+    "dueDate": "2023-12-31",
+    "type": "invoice",
+    "invoiceNumber": "FATT-2025-651",
+    "total": 1000,
+    "createdAt": "2025-07-08T14:11:57.911Z",
+    "id": "1751983917911s29j32ua8",
+    "updatedAt": "2025-07-08T14:11:57.911Z"
+  },
+  {
+    "date": "2025-07-08",
+    "customerId": "1751984951213zsbaeolt2",
+    "items": [
+      {
+        "description": "Progetto e fattura per il preventivo approvato da Luigino",
+        "quantity": 1,
+        "unitPrice": 5000,
+        "materialId": ""
+      }
+    ],
+    "notes": "",
+    "status": "draft",
+    "dueDate": "2025-08-07",
+    "type": "invoice",
+    "invoiceNumber": "FATT-2025-218",
+    "total": 5000,
+    "createdAt": "2025-07-08T14:55:03.173Z",
+    "id": "17519865031732hmg2lrx4",
+    "updatedAt": "2025-07-08T14:55:03.173Z"
+  }
+]

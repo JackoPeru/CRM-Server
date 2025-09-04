@@ -609,6 +609,26 @@ app.put('/api/orders/:id', authenticateToken, requirePermission('orders.edit'), 
   }
 });
 
+// Aggiorna parzialmente un ordine (PATCH)
+app.patch('/api/orders/:id', authenticateToken, requirePermission('orders.edit'), (req, res) => {
+  try {
+    const orders = readData('orders');
+    const index = orders.findIndex(o => o.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Ordine non trovato' });
+    }
+    orders[index] = {
+      ...orders[index],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('orders', orders);
+    res.json(orders[index]);
+  } catch (error) {
+    res.status(500).json({ error: 'Errore nell\'aggiornamento ordine' });
+  }
+});
+
 app.delete('/api/orders/:id', authenticateToken, requirePermission('orders.delete'), (req, res) => {
   try {
     const orderId = req.params.id;
@@ -1415,7 +1435,8 @@ app.delete('/api/projects/:projectId/images/:imageId', authenticateToken, requir
 // PREVENTIVI
 app.get('/api/quotes', authenticateToken, requirePermission('quotes.view'), (req, res) => {
   try {
-    const quotes = readData('quotes');
+    const orders = readData('orders');
+    const quotes = orders.filter(order => order.type === 'quote');
     res.json(quotes);
   } catch (error) {
     res.status(500).json({ error: 'Errore nel recupero preventivi' });
@@ -1424,8 +1445,8 @@ app.get('/api/quotes', authenticateToken, requirePermission('quotes.view'), (req
 
 app.get('/api/quotes/:id', authenticateToken, requirePermission('quotes.view'), (req, res) => {
   try {
-    const quotes = readData('quotes');
-    const quote = quotes.find(q => q.id === req.params.id);
+    const orders = readData('orders');
+    const quote = orders.find(q => q.id === req.params.id && q.type === 'quote');
     if (!quote) {
       return res.status(404).json({ error: 'Preventivo non trovato' });
     }
@@ -1437,15 +1458,16 @@ app.get('/api/quotes/:id', authenticateToken, requirePermission('quotes.view'), 
 
 app.post('/api/quotes', authenticateToken, requirePermission('quotes.create'), (req, res) => {
   try {
-    const quotes = readData('quotes');
+    const orders = readData('orders');
     const newQuote = {
       ...req.body,
       id: req.body.id || generateId(),
+      type: 'quote',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    quotes.push(newQuote);
-    writeData('quotes', quotes);
+    orders.push(newQuote);
+    writeData('orders', orders);
     res.status(201).json(newQuote);
   } catch (error) {
     res.status(500).json({ error: 'Errore nella creazione preventivo' });
@@ -1454,18 +1476,19 @@ app.post('/api/quotes', authenticateToken, requirePermission('quotes.create'), (
 
 app.put('/api/quotes/:id', authenticateToken, requirePermission('quotes.edit'), (req, res) => {
   try {
-    const quotes = readData('quotes');
-    const index = quotes.findIndex(q => q.id === req.params.id);
+    const orders = readData('orders');
+    const index = orders.findIndex(q => q.id === req.params.id && q.type === 'quote');
     if (index === -1) {
       return res.status(404).json({ error: 'Preventivo non trovato' });
     }
-    quotes[index] = {
-      ...quotes[index],
+    orders[index] = {
+      ...orders[index],
       ...req.body,
+      type: 'quote',
       updatedAt: new Date().toISOString()
     };
-    writeData('quotes', quotes);
-    res.json(quotes[index]);
+    writeData('orders', orders);
+    res.json(orders[index]);
   } catch (error) {
     res.status(500).json({ error: 'Errore nell\'aggiornamento preventivo' });
   }
@@ -1473,12 +1496,12 @@ app.put('/api/quotes/:id', authenticateToken, requirePermission('quotes.edit'), 
 
 app.delete('/api/quotes/:id', authenticateToken, requirePermission('quotes.delete'), (req, res) => {
   try {
-    const quotes = readData('quotes');
-    const filteredQuotes = quotes.filter(q => q.id !== req.params.id);
-    if (quotes.length === filteredQuotes.length) {
+    const orders = readData('orders');
+    const filteredOrders = orders.filter(q => !(q.id === req.params.id && q.type === 'quote'));
+    if (orders.length === filteredOrders.length) {
       return res.status(404).json({ error: 'Preventivo non trovato' });
     }
-    writeData('quotes', filteredQuotes);
+    writeData('orders', filteredOrders);
     res.json({ message: 'Preventivo eliminato con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore nell\'eliminazione preventivo' });
@@ -1680,6 +1703,261 @@ app.get('/api/analytics/trends', authenticateToken, requirePermission('dashboard
     res.json(trendData);
   } catch (error) {
     res.status(500).json({ error: 'Errore nel recupero dati trend' });
+  }
+});
+
+
+
+// APPUNTI (NOTES)
+app.get('/api/notes', authenticateToken, requirePermission('notes.view'), (req, res) => {
+  try {
+    const notes = readData('notes');
+    let filteredNotes;
+    
+    // Se l'utente ha il permesso di vedere tutti gli appunti
+    if (req.user.permissions.includes('notes.view.all')) {
+      filteredNotes = notes;
+    } else {
+      // Filtra gli appunti: solo quelli creati dall'utente o condivisi con lui
+      const shares = readData('note_shares') || [];
+      const sharedNoteIds = shares
+        .filter(share => share.workerIds.includes(req.user.id))
+        .map(share => share.noteId);
+      
+      filteredNotes = notes.filter(note => 
+        note.createdBy === req.user.id || sharedNoteIds.includes(note.id)
+      );
+    }
+    
+    // Ordina per data di creazione (più recenti prima)
+    const sortedNotes = filteredNotes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json(sortedNotes);
+  } catch (error) {
+    console.error('Errore nel recupero appunti:', error);
+    res.status(500).json({ error: 'Errore nel recupero appunti' });
+  }
+});
+
+app.post('/api/notes', authenticateToken, requirePermission('notes.create'), (req, res) => {
+  try {
+    const { title, content, priority } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Titolo e contenuto sono obbligatori' });
+    }
+    
+    const notes = readData('notes');
+    const newNote = {
+      id: generateId(),
+      title: title.trim(),
+      content: content.trim(),
+      priority: priority || 'medium',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: req.user.id,
+      createdByName: `${req.user.firstName} ${req.user.lastName}`.trim() || req.user.username
+    };
+    
+    notes.push(newNote);
+    
+    if (writeData('notes', notes)) {
+      res.status(201).json(newNote);
+    } else {
+      res.status(500).json({ error: 'Errore nel salvataggio appunto' });
+    }
+  } catch (error) {
+    console.error('Errore nella creazione appunto:', error);
+    res.status(500).json({ error: 'Errore nella creazione appunto' });
+  }
+});
+
+app.put('/api/notes/:id', authenticateToken, requirePermission('notes.edit'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, priority } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Titolo e contenuto sono obbligatori' });
+    }
+    
+    const notes = readData('notes');
+    const noteIndex = notes.findIndex(note => note.id === id);
+    
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Appunto non trovato' });
+    }
+    
+    // Verifica che l'utente possa modificare questo appunto
+    const note = notes[noteIndex];
+    if (note.createdBy !== req.user.id && !req.user.permissions.includes('notes.edit.all')) {
+      return res.status(403).json({ error: 'Non hai i permessi per modificare questo appunto' });
+    }
+    
+    notes[noteIndex] = {
+      ...note,
+      title: title.trim(),
+      content: content.trim(),
+      priority: priority || note.priority,
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (writeData('notes', notes)) {
+      res.json(notes[noteIndex]);
+    } else {
+      res.status(500).json({ error: 'Errore nell\'aggiornamento appunto' });
+    }
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento appunto:', error);
+    res.status(500).json({ error: 'Errore nell\'aggiornamento appunto' });
+  }
+});
+
+app.delete('/api/notes/:id', authenticateToken, requirePermission('notes.delete'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const notes = readData('notes');
+    const noteIndex = notes.findIndex(note => note.id === id);
+    
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Appunto non trovato' });
+    }
+    
+    // Verifica che l'utente possa eliminare questo appunto
+    const note = notes[noteIndex];
+    if (note.createdBy !== req.user.id && !req.user.permissions.includes('notes.delete.all')) {
+      return res.status(403).json({ error: 'Non hai i permessi per eliminare questo appunto' });
+    }
+    
+    notes.splice(noteIndex, 1);
+    
+    if (writeData('notes', notes)) {
+      res.json({ message: 'Appunto eliminato con successo' });
+    } else {
+      res.status(500).json({ error: 'Errore nell\'eliminazione appunto' });
+    }
+  } catch (error) {
+    console.error('Errore nell\'eliminazione appunto:', error);
+    res.status(500).json({ error: 'Errore nell\'eliminazione appunto' });
+  }
+});
+
+app.post('/api/notes/:id/share', authenticateToken, requirePermission('notes.share'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { workerIds, message } = req.body;
+    
+    if (!workerIds || !Array.isArray(workerIds) || workerIds.length === 0) {
+      return res.status(400).json({ error: 'Seleziona almeno un operaio' });
+    }
+    
+    const notes = readData('notes');
+    const note = notes.find(note => note.id === id);
+    
+    if (!note) {
+      return res.status(404).json({ error: 'Appunto non trovato' });
+    }
+    
+    // Verifica che l'utente possa condividere questo appunto
+    if (note.createdBy !== req.user.id && !req.user.permissions.includes('notes.share.all')) {
+      return res.status(403).json({ error: 'Non hai i permessi per condividere questo appunto' });
+    }
+    
+    // Recupera gli utenti operai
+    const users = readUsers();
+    const workers = users.filter(user => 
+      workerIds.includes(user.id) && user.role === 'worker'
+    );
+    
+    if (workers.length === 0) {
+      return res.status(400).json({ error: 'Nessun operaio valido trovato' });
+    }
+    
+    // Salva la condivisione
+    const shares = readData('note_shares') || [];
+    const newShare = {
+      id: generateId(),
+      noteId: id,
+      sharedBy: req.user.id,
+      sharedByName: `${req.user.firstName} ${req.user.lastName}`.trim() || req.user.username,
+      workerIds: workers.map(w => w.id),
+      workerNames: workers.map(w => `${w.firstName} ${w.lastName}`.trim() || w.username),
+      message: message || '',
+      sharedAt: new Date().toISOString()
+    };
+    
+    shares.push(newShare);
+    writeData('note_shares', shares);
+    
+    res.json({ 
+      message: 'Appunto condiviso con successo',
+      sharedWith: workers.map(w => ({ id: w.id, name: `${w.firstName} ${w.lastName}`.trim() || w.username }))
+    });
+  } catch (error) {
+    console.error('Errore nella condivisione appunto:', error);
+    res.status(500).json({ error: 'Errore nella condivisione appunto' });
+  }
+});
+
+app.get('/api/workers', authenticateToken, requirePermission('users.view'), (req, res) => {
+  try {
+    const users = readUsers();
+    const workers = users
+      .filter(user => user.role === 'worker')
+      .map(worker => ({
+        id: worker.id,
+        name: `${worker.firstName} ${worker.lastName}`.trim() || worker.username,
+        username: worker.username,
+        email: worker.email
+      }));
+    
+    res.json(workers);
+  } catch (error) {
+    console.error('Errore nel recupero operai:', error);
+    res.status(500).json({ error: 'Errore nel recupero operai' });
+  }
+});
+
+// Endpoint per recuperare le condivisioni ricevute da un operaio
+app.get('/api/notes/shared-with-me', authenticateToken, requirePermission('notes.view'), (req, res) => {
+  try {
+    const shares = readData('note_shares') || [];
+    const notes = readData('notes');
+    
+    // Filtra le condivisioni per l'utente corrente
+    const myShares = shares.filter(share => 
+      share.workerIds.includes(req.user.id)
+    );
+    
+    // Arricchisci con i dettagli dell'appunto
+    const enrichedShares = myShares.map(share => {
+      const note = notes.find(n => n.id === share.noteId);
+      return {
+        id: share.id,
+        noteId: share.noteId,
+        note: note ? {
+          id: note.id,
+          title: note.title,
+          content: note.content,
+          priority: note.priority,
+          createdAt: note.createdAt,
+          createdByName: note.createdByName
+        } : null,
+        sharedBy: share.sharedBy,
+        sharedByName: share.sharedByName,
+        message: share.message,
+        sharedAt: share.sharedAt
+      };
+    }).filter(share => share.note !== null); // Rimuovi condivisioni di note eliminate
+    
+    // Ordina per data di condivisione (più recenti prima)
+    const sortedShares = enrichedShares.sort((a, b) => 
+      new Date(b.sharedAt) - new Date(a.sharedAt)
+    );
+    
+    res.json(sortedShares);
+  } catch (error) {
+    console.error('Errore nel recupero condivisioni:', error);
+    res.status(500).json({ error: 'Errore nel recupero condivisioni' });
   }
 });
 

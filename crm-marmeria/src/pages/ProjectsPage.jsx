@@ -5,6 +5,7 @@ import { useData } from '../hooks/useData';
 import { useAuth } from '../hooks/useAuth';
 import ProjectStatusButtons from '../components/entities/ProjectStatusButtons';
 import ProjectImages from '../components/entities/ProjectImages';
+import { formatDate } from '../utils/helpers';
 
 // Configurazione centralizzata degli URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
@@ -60,6 +61,7 @@ const ProjectsPage = () => {
     deadline: '',
     budget: '',
     status: 'In Attesa',
+    description: '',
   });
   const [newProjectImages, setNewProjectImages] = useState([]);
 
@@ -108,7 +110,8 @@ const ProjectsPage = () => {
       ...newProject,
       type: 'project', // Specifica il tipo come progetto
       client: selectedCustomer ? selectedCustomer.name : 'Cliente non specificato',
-      budget: `€ ${parseFloat(newProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      budget: `€ ${parseFloat(newProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      description: newProject.description
     };
     
     try {
@@ -127,6 +130,7 @@ const ProjectsPage = () => {
         deadline: '',
         budget: '',
         status: 'In Attesa',
+        description: '',
       });
       setNewProjectImages([]);
     } catch (error) {
@@ -136,14 +140,25 @@ const ProjectsPage = () => {
 
   const handleEditProject = (project) => {
     // Pre-popola il form di modifica con i dati del progetto, convertendo il budget in numero
-    const budgetValue = project.budget ? parseFloat(project.budget.replace('€', '').replace(/\./g, '').replace(',', '.')) : '';
+    let budgetValue = '';
+    if (project.budget) {
+      if (typeof project.budget === 'string') {
+        budgetValue = parseFloat(project.budget.replace('€', '').replace(/\./g, '').replace(',', '.'));
+      } else if (typeof project.budget === 'number') {
+        budgetValue = project.budget;
+      }
+    }
     setCurrentProject({ ...project, budget: budgetValue });
     showModal({ id: 'editProject', type: 'edit' });
   };
 
   const handleUpdateProject = (e) => {
     e.preventDefault();
-    const updatedProject = { ...currentProject, type: 'project', budget: `€ ${parseFloat(currentProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` };
+    const updatedProject = {
+        ...currentProject,
+        budget: `€ ${parseFloat(currentProject.budget).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        description: currentProject.description || ''
+      };
     updateProject(currentProject.id, updatedProject);
     hideModal('editProject');
     setCurrentProject(null);
@@ -167,12 +182,6 @@ const ProjectsPage = () => {
       console.error('Progetto non valido:', project);
       return;
     }
-    console.log('ProjectsPage: Progetto selezionato per visualizzazione:', {
-      id: project.id,
-      name: project.name,
-      tipo: typeof project.id,
-      progetto_completo: project
-    });
     setProjectToView(project);
     showModal({ id: 'viewProject', type: 'view' });
   };
@@ -235,7 +244,7 @@ const ProjectsPage = () => {
   };
 
   return (
-    <div className="p-3 md:p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
+    <div className="p-3 md:p-6 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text max-w-full overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-3">
         <h1 className="text-xl md:text-2xl font-semibold mobile-friendly-text">Progetti</h1>
         {isAdmin && (
@@ -249,7 +258,7 @@ const ProjectsPage = () => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm mb-6">
+      <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm mb-6 max-w-full overflow-hidden">
         <div className="p-3 md:p-4 border-b border-light-border dark:border-dark-border">
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
             <div className="relative flex-1">
@@ -321,36 +330,36 @@ const ProjectsPage = () => {
 
         {/* Desktop Table */}
         <div className="desktop-table overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-light-bg dark:bg-dark-bg">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nome</th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nome</th>
                 {!isWorker && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data Inizio</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scadenza</th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data Inizio</th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scadenza</th>
                 {!isWorker && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Budget</th>
+                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Budget</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stato</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Operaio Assegnato</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Azioni</th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stato</th>
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Operaio</th>
+                <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-light-border dark:divide-dark-border">
               {currentFilteredProjects.length > 0 ? currentFilteredProjects.map((project) => (
                 <tr key={project.id} className="hover:bg-light-bg/50 dark:hover:bg-dark-bg/50">
-                  <td className="px-6 py-4 whitespace-nowrap">{project.name}</td>
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-light-text dark:text-dark-text">{project.name}</td>
                   {!isWorker && (
-                    <td className="px-6 py-4 whitespace-nowrap">{project.client}</td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{project.client}</td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">{project.startDate}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{project.deadline}</td>
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{project.startDate}</td>
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-light-text dark:text-dark-text">{project.deadline}</td>
                   {!isWorker && (
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">{project.budget}</td>
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-light-text dark:text-dark-text">{project.budget}</td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ 
                       project.status === 'Completato'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
@@ -363,7 +372,7 @@ const ProjectsPage = () => {
                       {project.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {project.assignedWorker ? (
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-8 w-8">
@@ -373,12 +382,12 @@ const ProjectsPage = () => {
                             </span>
                           </div>
                         </div>
-                        <div className="ml-3">
+                        <div className="ml-3 hidden xl:block">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {project.assignedWorker.name || project.assignedWorker.username || 'Operaio'}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(project.assignedWorker.assignedAt).toLocaleDateString('it-IT')}
+                            {formatDate(project.assignedWorker.assignedAt)}
                           </div>
                         </div>
                       </div>
@@ -386,10 +395,10 @@ const ProjectsPage = () => {
                       <span className="text-gray-400 dark:text-gray-500">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2 items-center">
-                      <button onClick={() => handleViewProject(project)} className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded">
-                        <Eye className="w-5 h-5" />
+                  <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
+                    <div className="flex justify-end gap-1 lg:gap-2 items-center">
+                      <button onClick={() => handleViewProject(project)} className="touch-target p-1 lg:p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded" title="Visualizza">
+                        <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                       </button>
                       {isWorker ? (
                         <ProjectStatusButtons 
@@ -398,11 +407,11 @@ const ProjectsPage = () => {
                         />
                       ) : (
                         <>
-                          <button onClick={() => handleEditProject(project)} className="p-1 text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded">
-                            <Edit className="w-5 h-5" />
+                          <button onClick={() => handleEditProject(project)} className="touch-target p-1 lg:p-2 text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20 rounded" title="Modifica">
+                            <Edit className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
-                          <button onClick={() => openConfirmDeleteModal(project.id)} className="p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded">
-                            <Trash className="w-5 h-5" />
+                          <button onClick={() => openConfirmDeleteModal(project.id)} className="touch-target p-1 lg:p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded" title="Elimina">
+                            <Trash className="w-4 h-4 lg:w-5 lg:h-5" />
                           </button>
                         </>
                       )}
@@ -411,7 +420,7 @@ const ProjectsPage = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={isWorker ? "6" : "8"} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={isWorker ? "6" : "8"} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400 mobile-friendly-text">
                     Nessun progetto trovato.
                   </td>
                 </tr>
@@ -439,47 +448,54 @@ const ProjectsPage = () => {
                 </span>
               </div>
               
-              <div className="space-y-2 mb-4">
+              <div className="space-y-3 mb-4">
                 {!isWorker && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text">Cliente:</span>
-                    <span className="font-medium mobile-friendly-text">{project.client}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text text-sm">Cliente:</span>
+                    <span className="font-medium mobile-friendly-text text-right">{project.client}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text">Inizio:</span>
-                  <span className="mobile-friendly-text">{project.startDate}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text text-sm">Inizio:</span>
+                  <span className="mobile-friendly-text text-right">{project.startDate}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text">Scadenza:</span>
-                  <span className="mobile-friendly-text">{project.deadline}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text text-sm">Scadenza:</span>
+                  <span className="mobile-friendly-text text-right">{project.deadline}</span>
                 </div>
                 {!isWorker && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text">Budget:</span>
-                    <span className="font-medium mobile-friendly-text">{project.budget}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text text-sm">Budget:</span>
+                    <span className="font-medium mobile-friendly-text text-right">{project.budget}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text">Operaio:</span>
-                  {project.assignedWorker ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
-                        <span className="text-white text-xs font-medium">
-                          {(project.assignedWorker.name || project.assignedWorker.username)?.charAt(0).toUpperCase() || '?'}
-                        </span>
+                <div className="flex justify-between items-start">
+                  <span className="text-gray-500 dark:text-gray-400 mobile-friendly-text text-sm">Operaio:</span>
+                  <div className="text-right">
+                    {project.assignedWorker ? (
+                      <div className="flex items-center gap-2 justify-end">
+                        <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">
+                            {(project.assignedWorker.name || project.assignedWorker.username)?.charAt(0).toUpperCase() || '?'}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="mobile-friendly-text font-medium text-sm">
+                            {project.assignedWorker.name || project.assignedWorker.username || 'Operaio'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(project.assignedWorker.assignedAt)}
+                          </div>
+                        </div>
                       </div>
-                      <span className="mobile-friendly-text font-medium">
-                        {project.assignedWorker.name || project.assignedWorker.username || 'Operaio'}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 mobile-friendly-text">-</span>
-                  )}
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500 mobile-friendly-text">-</span>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2 justify-end">
+              <div className="flex flex-wrap gap-2 justify-end pt-3 border-t border-light-border dark:border-dark-border">
                 <button 
                   onClick={() => handleViewProject(project)} 
                   className="touch-target px-3 py-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-md flex items-center gap-2"
@@ -535,7 +551,7 @@ const ProjectsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label htmlFor="name" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Nome Progetto *</label>
-                  <input type="text" name="name" id="name" value={newProject.name} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="text" name="name" id="name" value={newProject.name} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="Ristrutturazione bagno principale" />
                 </div>
                 {!isWorker && (
                   <div>
@@ -550,16 +566,16 @@ const ProjectsPage = () => {
                 )}
                 <div>
                   <label htmlFor="startDate" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Data Inizio *</label>
-                  <input type="date" name="startDate" id="startDate" value={newProject.startDate} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="date" name="startDate" id="startDate" value={newProject.startDate} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="2024-01-15" />
                 </div>
                 <div>
                   <label htmlFor="deadline" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Scadenza *</label>
-                  <input type="date" name="deadline" id="deadline" value={newProject.deadline} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                  <input type="date" name="deadline" id="deadline" value={newProject.deadline} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="2024-03-30" />
                 </div>
                 {!isWorker && (
                   <div>
                     <label htmlFor="budget" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Budget (€) *</label>
-                    <input type="number" name="budget" id="budget" step="0.01" value={newProject.budget} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" />
+                    <input type="number" name="budget" id="budget" step="0.01" value={newProject.budget} onChange={handleInputChange} required className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target" placeholder="15000.00" />
                   </div>
                 )}
                 <div>
@@ -571,6 +587,18 @@ const ProjectsPage = () => {
                     <option value="Annullato">Annullato</option>
                   </select>
                 </div>
+              </div>
+              <div className="col-span-1 md:col-span-2 mb-4">
+                <label htmlFor="description" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Descrizione</label>
+                <textarea 
+                  name="description" 
+                  id="description" 
+                  value={newProject.description} 
+                  onChange={handleInputChange} 
+                  rows="3" 
+                  className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target resize-vertical" 
+                  placeholder="Descrizione dettagliata del progetto..."
+                />
               </div>
               <div className="mt-4 mb-4">
                 <label className="block text-sm font-medium mb-2">Immagini del Progetto</label>
@@ -655,11 +683,11 @@ const ProjectsPage = () => {
               )}
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Data Inizio</p>
-                <p className="text-lg mobile-friendly-text">{projectToView.startDate}</p>
+                <p className="text-lg mobile-friendly-text">{projectToView.startDate ? formatDate(projectToView.startDate) : 'Non specificata'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Scadenza</p>
-                <p className="text-lg mobile-friendly-text">{projectToView.deadline}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text">Data Scadenza</p>
+                <p className="text-lg mobile-friendly-text">{projectToView.deadline ? formatDate(projectToView.deadline) : 'Non specificata'}</p>
               </div>
               {!isWorker && (
                 <div>
@@ -684,6 +712,12 @@ const ProjectsPage = () => {
                 </p>
               </div>
             </div>
+            {projectToView.description && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mobile-friendly-text mb-2">Descrizione</p>
+                <p className="text-base mobile-friendly-text bg-gray-50 dark:bg-gray-800 p-3 rounded-md">{projectToView.description}</p>
+              </div>
+            )}
             <div className="mt-6 flex justify-between items-center">
               {isWorker && (
                 <ProjectStatusButtons
@@ -757,6 +791,18 @@ const ProjectsPage = () => {
                     <option value="Annullato">Annullato</option>
                   </select>
                 </div>
+              </div>
+              <div className="col-span-1 md:col-span-2 mb-4">
+                <label htmlFor="edit-project-description" className="block text-sm md:text-base font-medium mb-2 mobile-friendly-text">Descrizione</label>
+                <textarea 
+                  name="description" 
+                  id="edit-project-description" 
+                  value={currentProject.description || ''} 
+                  onChange={(e) => setCurrentProject({...currentProject, description: e.target.value})} 
+                  rows="3" 
+                  className="w-full p-3 md:p-2 border border-light-border dark:border-dark-border rounded-md bg-light-bg dark:bg-dark-input focus:outline-none focus:ring-2 focus:ring-light-primary dark:focus:ring-dark-primary mobile-friendly-text touch-target resize-vertical" 
+                  placeholder="Descrizione dettagliata del progetto..."
+                />
               </div>
               <div className="flex flex-col sm:flex-row justify-end gap-3">
                 <button type="button" onClick={() => { hideModal('editProject'); setCurrentProject(null); }} className="touch-target px-4 py-3 md:py-2 border border-light-border dark:border-dark-border rounded-md hover:bg-light-bg dark:hover:bg-dark-bg mobile-friendly-text">

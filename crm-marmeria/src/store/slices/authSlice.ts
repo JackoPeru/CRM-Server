@@ -201,20 +201,64 @@ export const checkAuthStatus = createAsyncThunk<
       const token = authService.getToken();
 
       if (user && token) {
-        // Simula una risposta di login per coerenza
-        const tokens = { accessToken: token, refreshToken: token };
-        const expiresIn = 24 * 60 * 60 * 1000; // 24 ore
-        const userForSlice: User = {
-          id: user.id,
-          email: user.email,
-          name: user.username, // Map username to name
-          role: user.role as 'admin' | 'user' | 'viewer',
-          permissions: user.permissions,
-        };
-        return { user: userForSlice, tokens, expiresIn };
+        // Valida il token con il server per assicurarsi che sia ancora valido
+        try {
+          const isValid = await authService.validateToken();
+          if (!isValid) {
+            // Token non valido, pulisci l'autenticazione
+            authService.clearAuth();
+            return null;
+          }
+          
+          // Token valido, aggiorna i dati utente dal server
+          const updatedUser = authService.getUser();
+          if (!updatedUser) {
+            return null;
+          }
+          
+          const tokens = { accessToken: token, refreshToken: token };
+          const expiresIn = 24 * 60 * 60 * 1000; // 24 ore
+          const userForSlice: User = {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: updatedUser.username, // Map username to name
+            role: updatedUser.role as 'admin' | 'user' | 'viewer',
+            permissions: updatedUser.permissions,
+          };
+          return { user: userForSlice, tokens, expiresIn };
+        } catch (validationError) {
+          // Errore di validazione, probabilmente token scaduto
+          console.warn('Token validation failed:', validationError);
+          authService.clearAuth();
+          return null;
+        }
       }
       return null;
     } catch (error: any) {
+      console.error('Errore nel controllo dello stato di autenticazione:', error);
+      
+      // Se è un errore di rete, mantieni l'autenticazione locale
+      if (error.code === 'NETWORK_ERROR' || error.message?.includes('Network Error') || !navigator.onLine) {
+        console.warn('Errore di rete durante la validazione, mantengo autenticazione locale');
+        const user = authService.getUser();
+        const token = authService.getToken();
+        
+        if (user && token) {
+          const tokens = { accessToken: token, refreshToken: token };
+          const expiresIn = 24 * 60 * 60 * 1000; // 24 ore
+          const userForSlice: User = {
+            id: user.id,
+            email: user.email,
+            name: user.username,
+            role: user.role as 'admin' | 'user' | 'viewer',
+            permissions: user.permissions,
+          };
+          return { user: userForSlice, tokens, expiresIn };
+        }
+      }
+      
+      // Per altri errori, pulisci l'autenticazione per sicurezza
+      authService.clearAuth();
       return rejectWithValue(error.message || 'Errore nel controllo dello stato di autenticazione');
     }
   }
